@@ -1,0 +1,18 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Hostnomics
+
+//@version=5
+// indicator("My script")
+// plot(close)
+
+indicator(title="My Super Fancy Script", shorttitle = "MSFS", overlay=true, precision = 3, timeframe="D")
+// indicator(title="My Super Fancy Script", shorttitle = "MSFS", overlay=false, precision = 3, timeframe="D")
+//format=format.volume (mostly for volume)
+//scale=scale.left (scale-axis (right, left or none) y-column labels)
+//max_bars_back=10
+//timeframe="D"  Script plots daily timeframe while viewing the 4h timmeframe
+
+plotshape(barstate.islast, editable = true, text="Last Candle Dog")
+
+plot(close)
+// plot(volume)

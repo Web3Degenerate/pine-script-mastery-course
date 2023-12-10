@@ -1,0 +1,23 @@
+// Declare Variables: https://courses.theartoftrading.com/courses/take/pine-script-basics-course/lessons/30495081-declaring-variables
+
+//@version=5
+indicator("Variable Declarations")
+
+
+//override default, explicitly define variable type:
+// float greenCandleCountFloat = 0
+
+// greenCandleCount = 0
+// Use 'var' operator/keyword to make our variables persist across all our historical bars/ 
+// persitant variable 
+var greenCandleCount = 0
+drawShape = false //don't persist with var, otherwise always true, solid x's on every candle
+
+if close > open
+    // greenCandleCount := 50
+    // Can't Count all the green candles unless greenCandleCount is defined with the 'var' keyword: 
+    greenCandleCount := greenCandleCount + 1
+    drawShape := true
+
+plot(greenCandleCount)
+plotshape(drawShape)
