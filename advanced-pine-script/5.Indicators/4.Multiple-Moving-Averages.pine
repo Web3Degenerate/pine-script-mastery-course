@@ -1,0 +1,74 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29955376-multiple-moving-averages
+
+//@version=5
+indicator("Multiple Moving Averages", shorttitle = "HMD MMA", overlay=true)
+
+// Get MA Length Inputs. First one must be defval = 1 or else it triggers an error. (Need at least 1 MA drawn)
+// maLengthGroup = "Set The MA Lengths"
+// maLength1 = input.int(title="MA Length #1", defval=50, minval=1, step=10, group=maLengthGroup)
+// maLength2 = input.int(title="MA Length #2", defval=100, minval=0, step=10, group=maLengthGroup)
+// maLength3 = input.int(title="MA Length #3", defval=200, minval=0, step=10, group=maLengthGroup)
+// maLength4 = input.int(title="MA Length #4", defval=0, minval=0, step=10, group=maLengthGroup)
+// maLength5 = input.int(title="MA Length #5", defval=0, minval=0, step=10, group=maLengthGroup)
+
+maLength1 = input.int(title="MA Length #1", defval=50, minval=1, step=10, inline="MA 1", tooltip="Select the Length and Type of MA for the first MA")
+maLength2 = input.int(title="MA Length #2", defval=100, minval=0, step=10, inline="MA 2")
+maLength3 = input.int(title="MA Length #3", defval=200, minval=0, step=10, inline="MA 3")
+maLength4 = input.int(title="MA Length #4", defval=0, minval=0, step=10, inline="MA 4")
+maLength5 = input.int(title="MA Length #5", defval=0, minval=0, step=10, inline="MA 5")
+
+// MA Types
+// maTypeGroup = "Set Type of MA"
+// maType1     = input.string(title="MA Type #1", defval="EMA", options=["EMA", "SMA", "HMA", "WMA", "DEMA", "VWMA", "VWAP"], group=maTypeGroup, inline="MA 1")
+// maType2     = input.string(title="MA Type #2", defval="EMA", options=["EMA", "SMA", "HMA", "WMA", "DEMA", "VWMA", "VWAP"], group=maTypeGroup)
+// maType3     = input.string(title="MA Type #3", defval="EMA", options=["EMA", "SMA", "HMA", "WMA", "DEMA", "VWMA", "VWAP"], group=maTypeGroup)
+// maType4     = input.string(title="MA Type #4", defval="EMA", options=["EMA", "SMA", "HMA", "WMA", "DEMA", "VWMA", "VWAP"], group=maTypeGroup)
+// maType5     = input.string(title="MA Type #5", defval="EMA", options=["EMA", "SMA", "HMA", "WMA", "DEMA", "VWMA", "VWAP"], group=maTypeGroup)
+// allMaType   = input.string(title="ALL MA TYPE", defval="Disabled", options=["Disabled", "EMA", "SMA", "HMA", "WMA", "DEMA", "VWMA", "VWAP"], group=maTypeGroup)
+
+maType1     = input.string(title="MA Type #1", defval="EMA", options=["EMA", "SMA", "HMA", "WMA", "DEMA", "VWMA", "VWAP"], inline="MA 1")
+maType2     = input.string(title="MA Type #2", defval="EMA", options=["EMA", "SMA", "HMA", "WMA", "DEMA", "VWMA", "VWAP"], inline="MA 2" )
+maType3     = input.string(title="MA Type #3", defval="EMA", options=["EMA", "SMA", "HMA", "WMA", "DEMA", "VWMA", "VWAP"], inline="MA 3" )
+maType4     = input.string(title="MA Type #4", defval="EMA", options=["EMA", "SMA", "HMA", "WMA", "DEMA", "VWMA", "VWAP"], inline="MA 4" )
+maType5     = input.string(title="MA Type #5", defval="EMA", options=["EMA", "SMA", "HMA", "WMA", "DEMA", "VWMA", "VWAP"], inline="MA 5" )
+allMaType   = input.string(title="ALL MA TYPE", defval="Disabled", options=["Disabled", "EMA", "SMA", "HMA", "WMA", "DEMA", "VWMA", "VWAP"], inline="MA 6" )
+
+// Custom Function that returns MA based on what type and length user has selected (3:40) - 
+getMA(_maType, _maLength) =>
+    if _maLength == 0
+        na //return nothing if maLength not selected
+    else 
+    // use switch operator
+    // switch _maType
+        // Add override for Disable, all of type selected from 'ALL MA TYPE':
+        // if allMaType is disabled, evaluate _maType as shown below. If NOT disabled, set _maType to value in allMaType    
+        switch allMaType == "Disabled" ? _maType : allMaType
+            "SMA" => ta.sma(close, _maLength)
+            "HMA" => ta.hma(close, _maLength)
+            "WMA" => ta.wma(close, _maLength)
+            "VWMA" => ta.vwma(close, _maLength) //volume weighted moving average
+            "VWAP" => ta.vwap //volume weighted average price doesn't take _maLength
+            "DEMA" => 
+                // get EMA
+                e1 = ta.ema(close, _maLength)
+                // e2 exponential average of the EMA
+                e2 = ta.ema(e1, _maLength)
+                // return double ema with 
+                2 * e1 - e2
+            // If none above selected, return our default ema
+            => ta.ema(close, _maLength)
+
+
+// (9:30) - Get the 5 MAs selected by user
+ma1 = getMA(maType1, maLength1)
+ma2 = getMA(maType2, maLength2)
+ma3 = getMA(maType3, maLength3)
+ma4 = getMA(maType4, maLength4)
+ma5 = getMA(maType5, maLength5)
+
+// Draw MAs on to chart: 
+plot(ma1, color=close >= ma1 ? color.green : color.red, linewidth=1, title="MA #1")
+plot(maLength2 == 0 ? na : ma2, color=#1d75bc, linewidth=2, title="MA #2")
+plot(maLength3 == 0 ? na : ma3, color=#175a91, linewidth=3, title="MA #3")
+plot(maLength4 == 0 ? na : ma4, color=#124773, linewidth=4, title="MA #4")
+plot(maLength5 == 0 ? na : ma5, color=#072d4c, linewidth=5, title="MA #5")
