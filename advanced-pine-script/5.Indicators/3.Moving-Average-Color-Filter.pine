@@ -1,0 +1,20 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/30008040-moving-average-color-filter
+
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © DegenerateChain
+
+//@version=5
+indicator("Moving Average Color Filter", overlay=true)
+
+// Get user input
+maLength = input.int(title="MA Length", defval=50, minval=1)
+
+//Get MA
+ema = ta.ema(close, maLength)
+
+// Get MA Filter
+maFilter = close > ema ? true : false
+
+// Draw MA
+plot(ema, title="EMA", color=maFilter ? color.green : color.red, linewidth=2)
+

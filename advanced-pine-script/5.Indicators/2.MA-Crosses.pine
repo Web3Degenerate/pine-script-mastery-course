@@ -1,0 +1,27 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29955377-moving-average-crosses
+
+/@version=5
+indicator("MA Crosses", overlay=true)
+
+// Get MA from user input
+getEma1 = input.int(title="Set First EMA", defval=50, minval=1, group="Set Moving Averages")
+getEma2 = input.int(title="Set Second EMA", defval=100, group="Set Moving Averages")
+
+// Get MAs
+// ema1 = ta.ema(close, 50)
+ema1 = ta.ema(close, getEma1)
+// ema2 = ta.ema(close, 100)
+ema2 = ta.ema(close, getEma2)
+
+// Get the MA Crosses. Can be anything, MACD crossing or RSI cross over certain threshold, etc. 
+maCrossOver = ta.crossover(ema1, ema2)
+maCrossUnder = ta.crossunder(ema1, ema2)
+
+// Draw MAs to chart
+plot(ema1, color=color.green)
+plot(ema2, color=color.red)
+
+// Draw Crosses
+bgcolor(maCrossOver ? color.green : na)
+bgcolor(maCrossUnder ? color.red : na)
+
