@@ -1,0 +1,19 @@
+//https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29955380-average-true-range
+
+//@version=5
+indicator("ATR indicator", overlay=true)
+
+// Get user input
+multiplier = input.float(title="ATR Multiplier", defval=1.0)
+
+// Get ATR Value
+atr = ta.atr(14)
+
+// Calculate trailing stops
+longStop = low - (atr * multiplier)
+shortStop = high + (atr + multiplier)
+
+// Draw stops to chart
+plot(longStop, color=color.green)
+plot(shortStop, color=color.red)
+
