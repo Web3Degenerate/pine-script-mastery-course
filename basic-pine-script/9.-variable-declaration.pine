@@ -1,5 +1,5 @@
 // Declare Variables: https://courses.theartoftrading.com/courses/take/pine-script-basics-course/lessons/30495081-declaring-variables
-
+                 //   https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29334163-declaring-variables
 //@version=5
 indicator("Variable Declarations")
 
@@ -14,10 +14,20 @@ var greenCandleCount = 0
 drawShape = false //don't persist with var, otherwise always true, solid x's on every candle
 
 if close > open
-    // greenCandleCount := 50
-    // Can't Count all the green candles unless greenCandleCount is defined with the 'var' keyword: 
+        // greenCandleCount := 50
+        // Can't Count all the green candles unless greenCandleCount is defined with the 'var' keyword: 
     greenCandleCount := greenCandleCount + 1
     drawShape := true
 
 plot(greenCandleCount)
 plotshape(drawShape)
+
+
+//2nd half of lesson: (~10th minute, 10:36)
+// _Underscores or text. Can't start with number or other symbol. 
+var totalBars = 0
+totalBars := totalBars + 1
+
+plot(totalBars, color=color.purple) //our custom counter
+plot(bar_index) //built in. Counts AFTer the first, so one less than our totalBars
+

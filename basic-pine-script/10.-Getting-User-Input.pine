@@ -1,0 +1,71 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29416863-getting-user-input
+
+//@version=5
+indicator("Getting User Input")
+
+// Get a boolean input value
+inputBoolean = input.bool(title="On/Off", defval=true, tooltip="Turn on/off this setting")
+
+//Inline options. Two on same line "x". "y" on separate line: 
+inputBoolean1 = input.bool(title="On/Off", defval=true, tooltip="Turn on/off this setting", inline="x")
+inputBoolean2 = input.bool(title="On/Off", defval=true, tooltip="Turn on/off this setting", inline="x")
+inputBoolean3 = input.bool(title="On/Off", defval=true, tooltip="Turn on/off this setting", inline="y")
+
+// Groups / Settings
+inputBoolean4 = input.bool(title="On/Off", defval=true, tooltip="Turn on/off this setting", group="General Settings")
+inputBoolean5 = input.bool(title="On/Off", defval=true, tooltip="Turn on/off this setting", group="General Settings")
+inputBoolean6 = input.bool(title="On/Off", defval=true, tooltip="Turn on/off this setting", group="General Settings")
+
+//Confirm parameter. Default false. Pops up when indicator first added to chart. 
+inputBooleanConfirm = input.bool(title="On/Off", defval=true, tooltip="Turn on/off this setting", confirm=true)
+
+//Get Color input
+inputColor = input.color(title="color", defval = color.black)
+
+// Integer inputs WITHOUT options
+inputInteger = input.int(title="Whole Number", defval=5, minval=-10, maxval=10, step=1)
+// Integer inputs WITH options
+inputIntegerWithOptions = input.int(title="Whole Number With Options", defval=5, options=[1, 2, 3, 4, 5])
+
+
+//(18:50) - Float input
+inputFloat = input.float(title="Decimal Number", defval=-0.5, minval=-3.14, maxval=3.14, step=0.01)
+//options
+// inputFloatWithOptions = input.float(title="Decimal Number With Options", defval=-0.5, options=[-3.14, -2, 1, 2, 3.14])
+
+// Get a (market) symbol input value 
+inputSymbol = input.symbol(title="(Market) Symbol", defval="SPY") //SP500 by Default
+
+
+//(22:20) - Price Input
+// Enter price when add to chart. Perhaps see how many times crossed certain price. 
+inputPrice = input.price(title="Price", defval=0.0, confirm=true)
+
+//(24:53) - Get a Source input value (open, high, low, close and hl2, hl3, ohlc4)
+// hl2 = high low average
+// hl3 = high low and close average
+// ohlc4 = entire candle size average
+inputSource = input.source(title="Price Source", defval=close) 
+
+// Time and Date input
+// Can take timestamp value with inbuilt timestamp() function.  GMT is +0000
+
+//use persistant var for group setting. (Here wouldn't matter if didn't use var, but good practice)
+var G_TIME = "Time Settings"
+
+inputTime = input.time(title="Time", defval=timestamp("01 Jan 2000 13:30 +0000"), group=G_TIME, confirm=true)
+
+// Get a resolution input value
+inputResolution = input.timeframe(title="Timeframe", defval="60", group=G_TIME) //defval="D"
+
+
+//(~33:00) - Get a string input
+//example with options, allow user select what time of MA they want to use. 
+inputString = input.string(title="String", defval="A", options=["A", "B", "C"], tooltip="Select an Option")
+
+// Get a Session input (difference in time of day)
+// Time session filters. ex. b/t 6AM to 12pm, might exclude something, or do something during period of time. 
+inputSession = input.session(title="Time Filter Session", defval="0300-1300", group=G_TIME)
+
+// Draw nothing to the chart. (required for script to compile)
+plot(na)

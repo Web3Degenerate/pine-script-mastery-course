@@ -1,0 +1,13 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29416876-namespaces-libraries
+
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Hostnomics
+
+//@version=5
+indicator("PSMC - Namespaces")
+
+rsi = ta.rsi(close, 14)
+plot(rsi)
+
+myString = "10"
+plot(str.tonumber(myString))

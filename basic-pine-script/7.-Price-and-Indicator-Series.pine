@@ -1,0 +1,31 @@
+//@version=5
+//(52:59) - reference candlestick data open, high, low and close: https://youtu.be/HYyuYgPRLpc?si=XKYLMiudc6Yuhtvv&t=3179
+
+indicator("Price Series", overlay=false)
+
+// (54:00): https://youtu.be/HYyuYgPRLpc?si=kzg2z8rU16mpq0tL&t=3240
+// Get price data
+candleOpen = open
+candleHigh = high
+candleLow = low
+candleClose = close
+
+// Analyze price data
+candleSize = high - low //candle size in points (whole number) or pips (decimals)
+candleSize10BarsAgo = high[10] - low[10]
+candleSizeRatio = candleSize / candleSize10BarsAgo //get the ratio of current candle size from 10 bars ago.
+
+atr = ta.atr(14)
+strRatio = atr / atr[10]
+
+// Draw candle data onto our chart
+// plot(candleOpen, color=color.blue)
+// plot(candleHigh, color=color.red)
+// plot(candleLow, color=color.green)
+// plot(candleClose, color=color.purple)
+
+plot(candleSize, color=color.orange)
+plot(candleSizeRatio, color=color.purple)
+
+// plot(atr[10], color=color.red)
+plot(volume[234], color=color.red)

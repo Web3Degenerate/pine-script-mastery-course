@@ -1,0 +1,40 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29304012-data-types
+
+// (1:02:23): https://youtu.be/HYyuYgPRLpc?si=2CzDIItCb5VqK17B&t=3743
+
+//@version=5
+indicator("Data Types")
+
+//Whole Numbers
+integerType = 20
+// Decimal Numbers
+floatType = 0.5
+// Type E
+floatTypeE = 0.1e2 // return the result of this equaltion. 0.1 X 10 to the power of 2. 
+// Boolean Values
+boolType = true
+//In Built color. types: 
+colorType = color.black
+//Hex colorTypes / Custom Colors 
+colorTypeHex = #ff0000
+// RGB color types
+colorTypeRGP = color.rgb(255,255,0, 100) //4th param is the transparency level. 
+
+// String Type
+stringType = "Text"
+// Escape String with backslash '\'
+stringWithSingleQuotes = 'It\'s bullish!'
+// Or use Double quotes around single quote: 
+stringWithQuotes = "Bull's are back"
+// New Line String with '\n'
+stringWithReturn = 'It\s \n bullish!'
+
+// Resume at (1:10:40): https://youtu.be/HYyuYgPRLpc?si=l9qRfbq7NQXoQpYJ&t=4240
+// or here: https://courses.theartoftrading.com/courses/take/pine-script-basics-course/lessons/30495079-data-types
+
+if boolType
+    colorType := color.red
+
+plot(integerType, color=colorType)
+plot(floatType, color=color.white)
+plot(floatTypeE, color=color.white)
