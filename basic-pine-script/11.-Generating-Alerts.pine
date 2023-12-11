@@ -1,0 +1,42 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29417147-generating-alerts
+
+// Two kinds of alerts
+    // 1 - alertcondition()
+    // 2- alert()
+
+//@version=5
+indicator("Generating Alerts")
+
+hc = close > high[1] //is the current candle close greater than the previous candle
+lc = close < low[1] //opposite
+
+rsi = ta.rsi(close, 14)
+
+if hc
+    // alert(message="This bar closed higher than previous bar: " + str.tostring(close), freq = alert.freq_once_per_bar_close)
+    // don't have to specify message and freq
+    // alert.freq_one_per_bar - won't wait for close.
+    alert("This bar closed HIGHER than previous bar: " + str.tostring(close), alert.freq_once_per_bar_close)
+
+// You can pass other indicators, like RSI as well: 
+    alert("This bar closed HIGHER than previous bar: " + str.tostring(close) + ", with an RSI of: " + str.tostring(rsi), alert.freq_once_per_bar)
+
+if lc
+    alert("This bar closed LOWER than previous bar: " + str.tostring(close), alert.freq_once_per_bar)
+
+// (4:50) - alertcondition() takes 3 parameters. 
+// boolean trigger
+// title
+// message
+// CONDITION - does not let you string interpolate like you can in alert. 
+// alertcondition does not accept any paramter that can change. CONSTANTS only. 
+// Only acception, placeholder tags (6:38) like {{close}}, {{time}}, {{plot_0}} etc.
+alertcondition(hc, "Higher Close Alert", "This bar closed higher than previous bar: {{close}} on {{ticker}}")
+
+alertcondition(lc, "Lower Close Alert", "This bar closed lower than previous bar: {{close}} on {{ticker}}")
+
+alertcondition(hc or lc, "HC/LC Alert", "This bar closed higher or lower than previous bar: {{close}} on {{ticker}}")
+
+
+
+plot(close)
