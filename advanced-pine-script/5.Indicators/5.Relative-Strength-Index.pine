@@ -1,0 +1,41 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29955373-relative-strength-index
+
+//@version=5
+indicator("HMD Relative Strength Index", shorttitle="HMD RSI Oscillator")
+
+// (1:03) Import Zen Library: (Candlestick detection code)
+// import ZenAndTheArtOfTrading/ZenLibrary/5 as zen
+import ZenAndTheArtOfTrading/ZenLibrary/2 as zen
+
+// Get user inputs
+lookback    = input.int(title="Lookback", defval=7)
+rsiLen      = input.int(title="RSI Length", defval=7)           // 7 day instead of normal 14 day RSI
+rsiOB       = input.float(title="RSI Overbought", defval=80.0)  // use 80 overbought instead of normal 70
+rsiOS       = input.float(title="RSI Oversold", defval=20.0)  // use 20 overbought instead of normal 30
+
+
+// (3:15) - Get the RSI value
+rsi = ta.rsi(close, rsiLen)
+
+// Set buy signals (booleans) - tells script when to draw buy/sell
+rsiSell = rsi > rsiOB
+rsiBuy = rsi < rsiOS
+
+// Detect candle patterns: (from zen library using bullish and bearish engulfing candles)
+bullEC = zen.isBullishEC()
+bearEC = zen.isBearishEC()
+
+// Detect Buy and Sell Signals: 
+// check if bullEC and was it oversold on the current bar or the previous candle?
+buySignal = bullEC and (rsiBuy or rsiBuy[1])
+sellSignal = bearEC and (rsiSell or rsiSell[1])
+
+// Draw data to chart: (7:15)
+plot(rsi, title="RSI", color=rsiBuy ? color.lime : rsiSell ? color.red : color.black, linewidth=2)
+plot(rsiOB, title="RSI Overbought", color=color.red)
+plot(rsiOS, title="RSI Oversold", color=color.lime)
+bgcolor(buySignal ? color.lime : sellSignal ? color.red : na, title="Trade Signal")
+
+
+// (9:45) - Trigger Alerts
+alertcondition(buySignal or sellSignal, title="RSI Signal", message="HMD RSI Exhaustion Setup for {{ticker}} - RSI value = {{plot_0}}")
