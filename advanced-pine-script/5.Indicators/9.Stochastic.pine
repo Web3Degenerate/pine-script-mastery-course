@@ -1,0 +1,62 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29955383-stochastic
+
+// Copy base code from main 'Stochastic' indicator. 
+
+//@version=5
+// indicator(title="Stochastic", shorttitle="Stoch", format=format.price, precision=2, timeframe="", timeframe_gaps=true)
+// periodK = input.int(14, title="%K Length", minval=1)
+// smoothK = input.int(1, title="%K Smoothing", minval=1)
+// periodD = input.int(3, title="%D Smoothing", minval=1)
+// k = ta.sma(ta.stoch(close, high, low, periodK), smoothK)
+// d = ta.sma(k, periodD)
+// plot(k, title="%K", color=#2962FF)
+// plot(d, title="%D", color=#FF6D00)
+// h0 = hline(80, "Upper Band", color=#787B86)
+// hline(50, "Middle Band", color=color.new(#787B86, 50))
+// h1 = hline(20, "Lower Band", color=#787B86)
+// fill(h0, h1, color=color.rgb(33, 150, 243, 90), title="Background")
+
+// ************************ MODIFIED VERSION ******************************************************//
+
+//@version=5
+indicator("HMD Stochastic")
+
+// indicator(title="Stochastic", shorttitle="Stoch", format=format.price, precision=2, timeframe="", timeframe_gaps=true)
+
+// Import Libraries
+import ZenAndTheArtOfTrading/ZenLibrary/2 as zen 
+
+// Get user input: 
+periodK = input.int(14, title="%K Length", minval=1)
+smoothK = input.int(1, title="%K Smoothing", minval=1)
+periodD = input.int(3, title="%D Smoothing", minval=1)
+// Add our upperBand and lowerBand: 
+upperBand = input.int(title="Upper Band", defval=80)
+lowerBand = input.int(title="Lower Band", defval=20)
+
+// Calculate the stochastic values: 
+k = ta.sma(ta.stoch(close, high, low, periodK), smoothK)    // Blue Line
+d = ta.sma(k, periodD)                                      // Orange Line
+
+// ADD (3:40) our Candle patterns: 
+// bullish engulfing candle and k (blue line) is below our lower band OR the k value of previous bar was below our lower band
+longSignal = zen.isBullishEC() and (k < lowerBand or k[1] < lowerBand)
+shortSignal = zen.isBearishEC() and (k > upperBand or k[1] > upperBand)
+
+// ADD () our Draw Signals
+bgcolor(longSignal ? color.green : na)
+bgcolor(shortSignal ? color.red : na)
+
+// Draw data to chart (modified)
+plot(k, title="%K", color=#2962FF)
+plot(d, title="%D", color=#FF6D00)
+
+// modified to be dynamic: 
+// h0 = hline(80, "Upper Band", color=#787B86)
+// hline(50, "Middle Band", color=color.new(#787B86, 50))
+h1 = hline(upperBand, "Upper Band", color=#787B86)
+
+// h1 = hline(20, "Lower Band", color=#787B86)
+h2 = hline(lowerBand, "Lower Band", color=#787B86)
+// fill(h0, h1, color=color.rgb(33, 150, 243, 90), title="Background")
+fill(h1, h2, color=color.rgb(33, 150, 243, 90), title="Background")
