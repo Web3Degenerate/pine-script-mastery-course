@@ -1,0 +1,66 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29955385-ichimoku-cloud
+
+// @version=5
+indicator(title="Ichimoku Cloud", overlay=true)
+
+// Import zen library
+import ZenAndTheArtOfTrading/ZenLibrary/2 as zen
+
+// Get user input
+conversionPeriods   = input.int(title="Conversion Line Length", defval=9, minval=1)
+basePeriods         = input.int(title="Base Line Length", defval=26, minval=1)
+laggingSpan2Periods = input.int(title="Leading Span B Length", defval=52, minval=1)
+displacement        = input.int(title="Displacement", defval=26, minval=1) //How he gets the green line to trail back 26 bars (customizable)
+// (11:20) - Allow user to turn off 3 additional lines (clear up clutter)
+displayFullCloud    = input.bool(title="Show Full Cloud?", defval=true)
+
+// Calculate ichy math
+// Custom function, takes param 'len' when called on the lines below:
+donchian(len) => math.avg(ta.lowest(len), ta.highest(len))
+conversionLine = donchian(conversionPeriods)
+baseLine = donchian(basePeriods)
+leadLine1 = math.avg(conversionLine, baseLine)
+leadLine2 = donchian(laggingSpan2Periods)
+
+// Get candle patterns from zen library:
+hammer = zen.isHammer()
+star   = zen.isStar()
+
+// Get upper & lower ichimoku cloud displacement lines
+// TO COMARE which line is above/below the other: (6:20)
+leadLineD1 = leadLine1[displacement - 1]
+leadLineD2 = leadLine2[displacement - 1]
+
+// Check which cloud line is the upper and which is the lower
+// (8:05) IF leadLineD1 is greater than D2, then set upperIchy to leadLineD1, else set it to leadLineD2
+upperIchy = leadLineD1 > leadLineD2 ? leadLineD1 : leadLineD2
+// IF leadLineD1 Less Than leadLineD2, then set lowerIchy to leadLineD1, else set it to le
+lowerIchy = leadLineD1 < leadLineD2 ? leadLineD1 : leadLineD2
+
+// Get ichy filter
+aboveIchy = close > upperIchy
+belowIchy = close < lowerIchy
+
+// Get trade setups
+longSignal  = aboveIchy and hammer
+shortSignal = belowIchy and star
+
+// Draw signals
+plotshape(longSignal, style=shape.triangleup, location=location.belowbar, color=color.green, title="Long Signal")
+plotshape(shortSignal, style=shape.triangledown, location=location.abovebar, color=color.red, title="Short Signal")
+
+// Draw ichy
+// ================== Clear up clutter with ternary operator on displayFullCloud == false =========================== //
+plot(displayFullCloud ? conversionLine : na, color=#2962FF, title="Conversion Line")
+plot(displayFullCloud ? baseLine : na, color=#B71C1C, title="Base Line")
+plot(displayFullCloud ? close : na, offset=-displacement + 1, color=#43A047, title="Lagging Span")
+// ================== Clear up clutter with ternary operator on displayFullCloud == false =========================== //
+
+p1 = plot(leadLine1, offset=displacement - 1, color=#A5D6A7, title="Leading Span A")
+p2 = plot(leadLine2, offset=displacement - 1, color=#EF9A9A, title="Leading Span B")
+fill(p1, p2, color=leadLine1 > leadLine2 ? color.rgb(67, 160, 71, 90) : color.rgb(244, 67, 54, 90))
+
+
+// Generate Alerts
+alertcondition(longSignal, title="Ichi Long", message="Short setup below Ichimoku on{{ticker}}")
+alertcondition(shortSignal, title="Ichi Short", message="Short setup below Ichimoku on {{ticker}}")

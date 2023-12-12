@@ -50,3 +50,41 @@ swingLow  = low == ta.lowest(low, 4) or low[1] == ta.lowest(low, 4)
 // Is the current bar the highest of the last 4 || was the last bar the highest bar of the last four?
 swingHigh = high == ta.highest(high, 4) or high[1] == ta.highest(high, 4)
 ```
+
+## His Main Indicators
+
+- - (1) ATR, (2) RSI and (3) EMA
+  - mentioned in [Ichimoku Cloud](https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29955385-ichimoku-cloud)
+
+## Using Libraries to get Candles
+
+- Using the zen library, we can tap into candle types like `hammer` or `star`
+- Example from [Ichimoku Cloud](https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29955385-ichimoku-cloud)
+
+```js
+// Import zen library
+import ZenAndTheArtOfTrading/ZenLibrary/2 as zen
+
+// Get candle patterns from zen library:
+hammer = zen.isHammer()
+star   = zen.isStar()
+
+// Then combine with trade setups
+longSignal = aboveIchy and hammer
+shortSignal = belowIchy and star
+
+```
+
+- Clear up clutter with user input and ternary operator on indicators to turn off
+
+```js
+// user input:
+displayFullCloud    = input.bool(title="Show Full Cloud?", defval=true)
+
+// ================== Clear up clutter with ternary operator on displayFullCloud == false =========================== //
+plot(displayFullCloud ? conversionLine : na, color=#2962FF, title="Conversion Line")
+plot(displayFullCloud ? baseLine : na, color=#B71C1C, title="Base Line")
+plot(displayFullCloud ? close : na, offset=-displacement + 1, color=#43A047, title="Lagging Span")
+// ================== Clear up clutter with ternary operator on displayFullCloud == false =========================== //
+
+```
