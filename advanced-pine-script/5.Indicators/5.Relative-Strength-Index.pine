@@ -8,7 +8,7 @@ indicator("HMD Relative Strength Index", shorttitle="HMD RSI Oscillator")
 import ZenAndTheArtOfTrading/ZenLibrary/2 as zen
 
 // Get user inputs
-lookback    = input.int(title="Lookback", defval=7)
+lookback    = input.int(title="Lookback", defval=7)             // lookback not actually used here. Will be used in 6.RSI-Chart-Signals
 rsiLen      = input.int(title="RSI Length", defval=7)           // 7 day instead of normal 14 day RSI
 rsiOB       = input.float(title="RSI Overbought", defval=80.0)  // use 80 overbought instead of normal 70
 rsiOS       = input.float(title="RSI Oversold", defval=20.0)  // use 20 overbought instead of normal 30

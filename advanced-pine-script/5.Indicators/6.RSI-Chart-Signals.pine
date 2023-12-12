@@ -1,0 +1,63 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/30008734-rsi-chart-signals
+
+//@version=5
+indicator("RSI Chart Signals", overlay=true)
+
+import ZenAndTheArtOfTrading/ZenLibrary/2 as zen
+
+// Get user inputs
+lookback    = input.int(title="Lookback", defval=7)
+rsiLen      = input.int(title="RSI Length", defval=7)           // 7 day instead of normal 14 day RSI
+rsiOB       = input.float(title="RSI Overbought", defval=80.0)  // use 80 overbought instead of normal 70
+rsiOS       = input.float(title="RSI Oversold", defval=20.0)  // use 20 overbought instead of normal 30
+// Add stop-loss multiplier (2:30) so we can use ATR based stops
+multiplier  = input.float(title="ATR Multiplier", defval=1.0)
+rr          = input.float(title="Risk:Reward", defval=1.0)
+
+// Get the RSI value
+rsi = ta.rsi(close, rsiLen)
+// Set buy signals (booleans) - tells script when to draw buy/sell
+rsiSell = rsi > rsiOB
+rsiBuy = rsi < rsiOS
+// Get the ATR value (2:50)
+atr = ta.atr(14)
+
+// Detect candle patterns: (from zen library using bullish and bearish engulfing candles)
+bullEC = zen.isBullishEC()
+bearEC = zen.isBearishEC()
+
+// Detect Buy and Sell Signals: 
+// check if bullEC and was it oversold on the current bar or the previous candle?
+buySignal = bullEC and (rsiBuy or rsiBuy[1])
+sellSignal = bearEC and (rsiSell or rsiSell[1])
+
+// Calculate stops & targets (3:10). Acutally use lookback here: 
+//get the lowest low over our lookback period ta.lowest(low, lookback)
+longStop = ta.lowest(low, lookback) - (atr * multiplier)
+// get the highest high over our lookback period
+shortStop = ta.highest(high, lookback) + (atr * multiplier)
+// Calculate Take Profit Targets (6:20):
+longStopDistance    = close - longStop // Distance in pips or points from our entry to our stoploss on both bearish and bullish trades. (close above longStop)
+shortStopDistance   = shortStop - close // (6:50) since stoploss is ABOVE the close, subtract shortStop from close. 
+longTarget          = close + (longStopDistance * rr) // (8:05) - Add in risk reward user input as rr
+shortTarget         = close - (longStopDistance * rr) // 
+
+// Draw data to chart:
+// plot(rsi, title="RSI", color=rsiBuy ? color.lime : rsiSell ? color.red : color.black, linewidth=2)
+// plot(rsiOB, title="RSI Overbought", color=color.red)
+// plot(rsiOS, title="RSI Oversold", color=color.lime)
+// bgcolor(buySignal ? color.lime : sellSignal ? color.red : na, title="Trade Signal")
+
+//Draw the new atr stop loss to the chart (4:50)
+plotshape(buySignal, style=shape.triangleup, color=color.green, location=location.belowbar)
+plotshape(sellSignal, style=shape.triangledown, color=color.red, location=location.abovebar)
+// Plot our longStop and shortStop to the chart: 
+plot(buySignal ? longStop : na, color=color.red, style=plot.style_linebr) // (8:55) - add in line break 'style=plot.style_linebr'
+plot(sellSignal ? shortStop : na, color=color.red, style=plot.style_linebr)
+// (7:20) Plot our longTarget and shortTarget 
+plot(buySignal ? longTarget : na, color=color.green, style=plot.style_linebr)
+plot(sellSignal ? shortTarget : na, color=color.green, style=plot.style_linebr)
+
+
+// Trigger Alerts
+alertcondition(buySignal or sellSignal, title="RSI Signal", message="HMD RSI Exhaustion Setup for {{ticker}} - RSI value = {{plot_0}}")
