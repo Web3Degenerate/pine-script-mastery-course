@@ -1,0 +1,43 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29955382-vwap-vwma
+
+
+//@version=5
+indicator("VWAP and VWMA", overlay=true)
+
+// Import Libraries
+import ZenAndTheArtOfTrading/ZenLibrary/2 as zen 
+
+// Get user input
+vwapType = input.string(title="VWAP Type", defval="VWAP", options=["VWAP", "VWMA"])
+vwmaLength = input.int(title="VWMA Length", defval=20)
+
+// Get VWAP
+                            //default       //else high + low + close / 3
+vwapValue = vwapType == "VWAP" ? ta.vwap : ta.vwma(hlc3, vwmaLength)
+
+// Detect VWAP Filter
+bull_filter = close > vwapValue and close[1] > vwapValue
+bear_filter = close < vwapValue and close[1] < vwapValue
+
+// Prepare filters
+// Is the current bar the lowest of the last 4  || was the last bar the lowest bar of the last four? 
+swingLow  = low == ta.lowest(low, 4) or low[1] == ta.lowest(low, 4)
+// Is the current bar the highest of the last 4 || was the last bar the highest bar of the last four? 
+swingHigh = high == ta.highest(high, 4) or high[1] == ta.highest(high, 4)
+
+// Detect engulfing candles
+// If we have a bullish engulfing candle, was it also a swingLow
+bull_ec = zen.isBullishEC() and swingLow
+bear_ec = zen.isBearishEC() and swingHigh
+
+// Detect valid trading signals
+longSignal  = bull_filter and bull_ec
+shortSignal = bear_filter and bear_ec
+
+// Draw signals to the chart
+plot(vwapValue, color=close > vwapValue ? color.green : color.red, linewidth=2)
+plotshape(longSignal, style=shape.triangleup, color=color.green, location=location.belowbar)
+plotshape(shortSignal, style=shape.triangledown, color=color.red, location=location.abovebar)
+
+// Trigger alerts
+alertcondition(longSignal or shortSignal, title="VWAP Alert!", message="VWAP Alert For {{ticker}}")

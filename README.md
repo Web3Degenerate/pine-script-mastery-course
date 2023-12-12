@@ -36,3 +36,17 @@ Pine Script Tutorial
 ## [Plot Shape](https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29554564-plot-shape)
 
 - - set shape with `plotshape(_bool_, _title_, style=shape.*)`
+
+---
+
+## Swing High or Swing Low
+
+- From [VWAP & VWMA](https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29955382-vwap-vwma)
+
+```js
+// Prepare filters
+// Is the current bar the lowest of the last 4  || was the last bar the lowest bar of the last four?
+swingLow  = low == ta.lowest(low, 4) or low[1] == ta.lowest(low, 4)
+// Is the current bar the highest of the last 4 || was the last bar the highest bar of the last four?
+swingHigh = high == ta.highest(high, 4) or high[1] == ta.highest(high, 4)
+```
