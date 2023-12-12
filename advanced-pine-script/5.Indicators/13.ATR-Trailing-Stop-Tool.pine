@@ -1,0 +1,55 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/30573822-atr-trailing-stop-tool
+
+//@version=5
+indicator("HMD ATR Trailing Stop Tool", shorttitle="HMD Trailing ATR", overlay=true)
+
+// Get user input
+trailType           = input.string(title="Trail Type", defval="Long", options=["Long", "Short"], confirm=true)
+structureLookback   = input.int(title="Lookback", defval=7, confirm=true)
+atrLength           = input.int(title="ATR Length", defval=14)
+multiplier          = input.float(title="ATR Multiplier", defval=1.0, confirm=true)
+barTime             = input.time(title="Bar Time", defval=timestamp("01 Jan 2021 13:30 +0000"), confirm=true)
+
+// Get the current ATR
+atr = ta.atr(atrLength) * multiplier
+
+// Declare trailing variables
+var trailPrice = 0.0
+t_trailPrice = trailType == "Long" ? ta.lowest(low, structureLookback) - atr : ta.highest(high, structureLookback) + atr
+alertType = -1
+
+// Check for trailing stop update
+if time >= barTime and barstate.isconfirmed
+    // Trail long stop
+    if (t_trailPrice > trailPrice or trailPrice == 0.0) and trailType == "Long"
+        trailPrice := t_trailPrice
+        // Trigger alert
+        alertType := 1
+        alert(message="Trailing Stop updated for " + syminfo.tickerid + ": " + str.tostring(trailPrice, "#.#####"), freq=alert.freq_once_per_bar_close)
+    // Trail short stop
+    if (t_trailPrice < trailPrice or trailPrice == 0.0) and trailType == "Short"
+        trailPrice := t_trailPrice
+        // Trigger alert
+        alertType := 1
+        alert(message="Trailing Stop updated for " + syminfo.tickerid + ": " + str.tostring(trailPrice, "#.#####"), freq=alert.freq_once_per_bar_close)
+        
+// If long stop is hit, reset trail stop
+if trailPrice != 0.0 and low <= trailPrice and trailType == "Long"
+    trailPrice := na
+    // Trigger alert
+    alertType := 2
+    alert(message="Trailing Stop hit for " + syminfo.tickerid, freq=alert.freq_once_per_bar_close)
+
+// If short stop is hit, reset trail stop
+if trailPrice != 0.0 and high >= trailPrice and trailType == "Short"
+    trailPrice := na
+    // Trigger alert
+    alertType := 2
+    alert(message="Trailing Stop hit for " + syminfo.tickerid, freq=alert.freq_once_per_bar_close)
+
+// Draw data to chart
+plot(trailPrice != 0 ? trailPrice : na, color=color.red, title="Trailing Stop")
+
+// Trigger alert conditions
+alertcondition(alertType == 1, "Trailing Stop Update", "Trailing Stop updated for {{ticker}}: {{plot_0}}")
+alertcondition(alertType == 2, "Trailing Stop Hit", "Trailing Stop hit for {{ticker}}")
