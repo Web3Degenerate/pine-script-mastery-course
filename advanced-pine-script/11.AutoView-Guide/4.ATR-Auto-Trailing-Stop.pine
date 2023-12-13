@@ -1,0 +1,57 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/30228751-atr-auto-trailing-stop
+
+// USED VERSION 4 'study()'
+
+//@version=4
+study("AutoView Trailing Stop", overlay=true)
+
+// Get user input
+trailType = input(title="Trail Type", type=input.string, defval="Long", options=["Long", "Short"])
+structureLookBack = input(title="Lookback", type=input.integer, defval=7)
+atrLength = input(title="ATR Length", type=input.integer, defval=14)
+barIndex = input(title="Bar Index", type=input.integer, defval=0)
+// barTime = input(title="", type=, defval=)
+broker = input(title="Broker/Exchange", type=input.string, defval="oandapractice")
+
+
+// Get the current ATR
+atr = atr(atrLength)
+
+// Declare trailing variables
+//our initial trailPrice
+var trailPrice = 0.0
+                                                                            // else "Short":
+t_trailPrice = trailType == "Long" ? lowest(low, structureLookBack) - atr : highest(high, structureLookBack) + atr
+
+// (15:41) - Create new variables to tell AutoView to update our stop loss in the if statements below
+// var symbol = syminfo.tickerid //won't work because needs to be aud/usd or aud_usd
+var symbol = syminfo.basecurrency + "/" + syminfo.currency //concatenate into aud/usd
+//prefix use before every command we send to AutoView like e=oandapractice and s=symbol
+var avPrefix = "e=" + broker + " " + "s=" + symbol + " "
+
+// (8:24) Check for trailing stop update
+if(bar_index >= barIndex and barIndex != 0)
+    // Trail our long stop with nested if statement
+    if(t_trailPrice > trailPrice or trailPrice == 0.0) and trailType == "Long"
+        trailPrice := t_trailPrice
+        // (15:20) Tell AutoView to update our stop loss
+
+    // Trail our short stop
+    if(t_trailPrice < trailPrice or trailPrice == 0.0) and trailType == "Short"
+        trailPrice := t_trailPrice
+        // (15:20) Tell AutoView to update our stop loss
+
+// (~11 - 13:00) If stop is hit, reset trail stop
+if trailPrice != 0.0 and low <= trailPrice and trailType == "Long"
+    trailPrice := na
+
+// (~12:45) If short stop is hit, reset trail stop
+if trailPrice != 0.0 and high >= trailPrice and trailType == "Short"
+    trailPrice := na
+
+// Draw data to chart
+plot(trailPrice, color=color.red, title = "Trailing Stop")
+
+
+
+plot(bar_index)

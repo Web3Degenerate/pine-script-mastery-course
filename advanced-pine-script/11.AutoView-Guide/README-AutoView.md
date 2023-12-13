@@ -37,4 +37,35 @@
   - Example stop loss and take profit **with PIPS**
     - No idea: `e=oandapractice s=aud/usd b=long t=market q=1 sl=-0.01226 tp=0.00056`
   - **BETTER WAY** - Set Stop Loss and Take Profit based on **PRICE**
-    - `e=oan-dapractice s=aud/usd b=long t=market q=1 fsl=-0.65582 ftp=0.65487`
+    - `e=oandapractice s=aud/usd b=long t=market q=1 fsl=-0.65582 ftp=0.65487`
+  -
+  - **Fixed Price** fp and t=limit
+  - ## `e=oandapractice s=aud/usd b=short t=limit q=1 fp=0.65584 fsl=0.65632 ftp=0.65502` - enter short at fixed price at swing high (entry) - fixed stop loss (fsl) at higher candles a ways back (1m) - fixed take profit (ftp) at swing low
+  - Set datetime expiration
+
+    - use `dt=12-15-2023` day
+    - or specify date and time: `dt=12-15-2023 14:00:00`
+    - or use **unix time**
+
+    - Commands tested in this lesson:
+
+```js
+    e= BROKER
+    s= SYMBOL
+    b= LONG/SHORT
+    q= QUANTITY
+    t= ORDER TYPE (limit/market/stop)
+    fp= PRICE FOR LIMIT ORDERS
+    dt= DATE/TIME
+    fsl= STOP LOSS PRICE
+    sl= STOP LOSS PIPS
+    ftp= PROFIT TARGET PRICE
+    tp= PROFIT TARGET PIPS
+    fgsl= FIXED GUARANTEED SL PRICE
+    ts= TRAILING STOP PIPS
+    ro=1 REDUCE ONLY
+    delay= PAUSE IN SECONDS BETWEEN ORDERS
+    d=1 DISABLES COMMAND EXECUTION
+    c= POSITION/ORDER
+    a= ACCOUNT ALIAS
+```
