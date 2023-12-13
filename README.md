@@ -33,6 +33,13 @@ Pine Script Tutorial
 
 ---
 
+## [Finding Reference Scripts](https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29550971-finding-reference-scripts)
+
+- - User **HPotter** mentioned in tutorial.
+  - Search **People** or **Scripts** to find useful indicators/strategies.
+
+---
+
 ## [Plot Shape](https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29554564-plot-shape)
 
 - - set shape with `plotshape(_bool_, _title_, style=shape.*)`
