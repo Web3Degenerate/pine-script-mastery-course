@@ -1,5 +1,7 @@
 // https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/30228751-atr-auto-trailing-stop
 
+// Example of applying the indicator in a trade at (29:22)
+
 // USED VERSION 4 'study()'
 
 //@version=4
@@ -10,7 +12,7 @@ trailType = input(title="Trail Type", type=input.string, defval="Long", options=
 structureLookBack = input(title="Lookback", type=input.integer, defval=7)
 atrLength = input(title="ATR Length", type=input.integer, defval=14)
 barIndex = input(title="Bar Index", type=input.integer, defval=0)
-// barTime = input(title="", type=, defval=)
+barTime = input(title="Bar Time", type=input.time, defval=timestamp("01 Jan 2023 13:30 +0000"))           // Added timestamp() at (26:05)
 broker = input(title="Broker/Exchange", type=input.string, defval="oandapractice")
 
 
@@ -29,17 +31,30 @@ var symbol = syminfo.basecurrency + "/" + syminfo.currency //concatenate into au
 //prefix use before every command we send to AutoView like e=oandapractice and s=symbol
 var avPrefix = "e=" + broker + " " + "s=" + symbol + " "
 
-// (8:24) Check for trailing stop update
-if(bar_index >= barIndex and barIndex != 0)
-    // Trail our long stop with nested if statement
-    if(t_trailPrice > trailPrice or trailPrice == 0.0) and trailType == "Long"
+// (8:24) Check for trailing stop update    // (20:40) - Add additional check current bar is closed or is a historical bar
+// (26:45) - Added bartime to our outter if statment to see if the current bar has passed the time entered in settings menu.
+   // ONE CHECK ==================================================================|  SECOND CHECK ===========//
+if((bar_index >= barIndex and barIndex != 0) or (time >= barTime and barIndex == 0)) and barstate.isconfirmed
+    // Trail our long stop with nested if statement                         
+    if(t_trailPrice > trailPrice or trailPrice == 0.0) and trailType == "Long" 
         trailPrice := t_trailPrice
-        // (15:20) Tell AutoView to update our stop loss
+        // (15:20) - (~19th min, set alert) Tell AutoView to update our stop loss // Don't need bool like we do with alertcondition(BOOL, title, message)
+        // (21:15) add clearOrder. The c=order cancels any order (profit & stop loss) that we may have.
+
+        clearOrder = avPrefix + "c=order\n"          //DELETE any open orders. Add '\n' newline
+
+        // slOrder = avPrefix + "c=position b=long fsl=" + trailPrice          // int to string conversion error!
+        slOrder = avPrefix + "c=position b=long fsl=" + tostring(trailPrice)  // STOP LOSS ORDER
+        alert(message=clearOrder + slOrder, freq=alert.freq_once_per_bar_close)
 
     // Trail our short stop
     if(t_trailPrice < trailPrice or trailPrice == 0.0) and trailType == "Short"
         trailPrice := t_trailPrice
         // (15:20) Tell AutoView to update our stop loss
+        clearOrder = avPrefix + "c=order\n"          //DELETE any open orders. Add '\n' newline
+        slOrder = avPrefix + "c=position b=short fsl=" + tostring(trailPrice)  // TAKE PRFO(IT) ORDER
+        alert(message=clearOrder + slOrder, freq=alert.freq_once_per_bar_close)
+
 
 // (~11 - 13:00) If stop is hit, reset trail stop
 if trailPrice != 0.0 and low <= trailPrice and trailType == "Long"
@@ -51,7 +66,5 @@ if trailPrice != 0.0 and high >= trailPrice and trailType == "Short"
 
 // Draw data to chart
 plot(trailPrice, color=color.red, title = "Trailing Stop")
-
-
-
-plot(bar_index)
+// (27:58) - update settings on our bar_index plot which gives us the current bars number (on hover)
+plot(bar_index, color=color.blue, title="Current Bar Index") 
