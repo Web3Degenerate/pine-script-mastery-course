@@ -1,0 +1,55 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/30903066-bollinger-band-volatility
+
+// Advanced Bollinger Band analysis. 
+// Purpose: Detect expansion and contraction in the bollinger bands themselves. 
+
+// Gives us a read on volatility. 
+// As bands expanx, volatility increases. 
+// background turns red as the bands contract, thus a decrease in volatilty. 
+
+// Upper and lower bands are 1 STD above/below (?)
+
+//@version=5
+
+
+// Resume at (3:31): https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/30903066-bollinger-band-volatility
+
+// Get user input
+maPeriod    = input.int(title="Middle SMA Length", defval=20, tooltip="Middle band's SMA period length")
+standardDev = input.float(title="Standard Deviation", defval=2.0, step=0.5, tooltip="Band's standard deviation multiplier")
+lookback    = input.int(title="Lookback", defval=10, tooltip="Lookback period for calculating Bollinger Band % change")
+expAlert    = input.float(title="Expansion % Alert", defval=60.0, minval=0.0, tooltip="Expansion above this % change = trigger alert")
+conAlert    = input.float(title="Contraction % Alert", defval=-40.0, minval=-100.0, tooltip="Contraction below this % change = trigger alert")
+expColor    = input.color(title="Expansion Color", defval=color.new(color.lime,75), inline="color")
+conColor    = input.color(title="Contraction Color", defval=color.new(color.red,75), tooltip="Max expansion/contraction color gradient", inline="color")
+
+// Get Bollinger Bands
+[bbMid, bbHigh, bbLow] = ta.bb(close, maPeriod, standardDev)
+
+// Calculate percentage change in bands
+bbChange = bbHigh - bbMid
+bbDiff   = bbChange - bbChange[lookback]
+bbPct    = (bbDiff / bbChange) * 100
+
+// Get largest expansion/contraction % over past X bars
+maxExp = 0.0
+maxCon = 0.0
+for i = 0 to (lookback * 2)
+    if bbPct[i] > maxExp
+        maxExp := bbPct[i]
+    if bbPct[i] < maxCon
+        maxCon := bbPct[i]
+
+// Draw data to chart
+plot(bbPct, color=color.new(color.purple,100), title="Bollinger Change %")
+plot(bbMid, color=color.blue, title="Mid SMA")
+x = plot(bbHigh, color=color.red, title="Upper Band")
+y = plot(bbLow, color=color.green, title="Lower Band")
+
+// Change background of chart based on bollinger band expansion/contraction
+bgColor = color.from_gradient(bbPct, maxCon, maxExp, conColor, expColor)
+fill(x, y, bgColor)
+
+// Generate alerts
+alertcondition(bbPct >= expAlert, "BBV Alert (+)", "Bollinger bands for {{ticker}} have expanded {{plot_0}}%!")
+alertcondition(bbPct <= conAlert, "BBV Alert (-)", "Bollinger bands for {{ticker}} have contracted {{plot_0}}%!")

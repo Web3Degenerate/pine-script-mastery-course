@@ -112,3 +112,17 @@ plot(displayFullCloud ? close : na, offset=-displacement + 1, color=#43A047, tit
 
   - How to Start and Stop a period to get the **high** and **low** in the desired period (8:05)
     - X
+
+---
+
+```js
+// ==================================================================================================//
+```
+
+---
+
+## To Do
+
+1. convert int to float.
+2. format open, high, low and close and inter into price param
+3.
