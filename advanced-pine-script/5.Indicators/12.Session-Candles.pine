@@ -1,0 +1,141 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29483619-session-candles
+
+//@version=5
+indicator("HMD Session Candles", overlay=true)
+
+session_ny = input.session(title="U.S Session", defval="0900-2300")
+session_tokyo = input.session(title="Tokyo Session", defval="1900-0500")
+session_london = input.session(title="London Session", defval="0400-1400")
+
+// Check if the current bar falls within the given TIME session
+    // First check that the time() value is NOT na
+        // To dynamicaly get the bar in the user's chosen timeframe (15m, 1h, 4h, 1D, etc.)
+            // time() function takes CURRENT TIME FRAME BAR (ie 15m bar), compares to passed in _session:
+isInSession(_session) => not na( time(timeframe.period, _session) )
+
+
+// Calculate the high and lows for all of our sessions: 
+
+// ******* TOKYO SESSION    ************************************************************************************ //
+
+    // (1) Have we just started the session
+    // THIS would return EVERY bar that returns true (in session)
+    // startedNY = isInSession(session_tokyo)
+// array_shift => FIRST BAR => INSTEAD, check that the PREVIOUS BAR was NOT in session (hence, we're getting the session's FIRST bar like array_shift)
+startedTK = isInSession(session_tokyo) and not isInSession(session_tokyo)[1]
+// bool - do we want to save tokyo data, high, low, closee etc.
+var saveTK = false
+// array_pop => LAST BAR => confirm that the previous bar was IN session and the current bar as NOT insession.
+exitedTK = isInSession(session_tokyo)[1] and not isInSession(session_tokyo)
+
+//set default high, low, open, close
+var tkHigh = 0.0
+var tkLow = 999999999.9
+var tkOpen = 0.0
+var tkClose = 0.0
+
+// If we've entered Tokyo session, prepare our variables
+if startedTK
+    saveTK := true
+    tkOpen := open
+    tkHigh := 0.0
+    tkLow := 999999999.9
+
+// If we've exited the Tokyo session, save the close
+if exitedTK
+    tkClose := close[1]
+    saveTK := false
+
+// If we're within the Tokyo session, save the highest high/lowest low
+if saveTK
+    if high > tkHigh
+        tkHigh := high
+    if low < tkLow
+        tkLow := low
+
+plotbar(exitedTK ? tkOpen : na, exitedTK ? tkHigh : na, exitedTK ? tkLow : na, exitedTK ? tkClose : na, 
+     color=color.purple, title="Tokyo Session Summary")
+
+//Convert to price ?
+// hline(exitedTK ? tkOpen : na, color=color.blue, linewidth=1)  
+
+
+
+
+
+
+
+// ******* NEW YORK SESSION ************************************************************************************ //
+
+startedNY = isInSession(session_ny) and not isInSession(session_ny)[1]
+// bool - do we want to save tokyo data, high, low, closee etc.
+var saveNY = false
+// array_pop => LAST BAR => confirm that the previous bar was IN session and the current bar as NOT insession.
+exitedNY = isInSession(session_ny)[1] and not isInSession(session_ny)
+
+//set default high, low, open, close
+var nyHigh = 0.0
+var nyLow = 999999999.9
+var nyOpen = 0.0
+var nyClose = 0.0
+
+// If we've entered Tokyo session, prepare our variables
+if startedNY
+    saveNY := true
+    nyOpen := open
+    nyHigh := 0.0
+    nyLow := 999999999.9
+
+// If we've exited the Tokyo session, save the close
+if exitedNY
+    nyClose := close[1]
+    saveNY := false
+
+// If we're within the Tokyo session, save the highest high/lowest low
+if saveNY
+    if high > nyHigh
+        nyHigh := high
+    if low < nyLow
+        nyLow := low
+
+plotbar(exitedNY ? nyOpen : na, exitedNY ? nyHigh : na, exitedNY ? nyLow : na, exitedNY ? nyClose : na, 
+     color=color.purple, title="Tokyo Session Summary")
+
+// Plot the bar to our chart   
+plotbar(exitedNY ? nyOpen : na, exitedNY ? nyHigh : na, exitedNY ? nyLow : na, exitedNY ? nyClose : na, 
+     color=color.blue, title="New York Session")
+
+// ******* LONDON SESSION   ************************************************************************************ //
+
+//===== LONDON SESSION =====//
+startedLD = isInSession(session_london) and not isInSession(session_london)[1]
+var saveLD = false
+exitedLD = isInSession(session_london)[1] and not isInSession(session_london)
+var ldHigh = 0.0
+var ldLow = 9999999.9
+var ldOpen = 0.0
+var ldClose = 0.0
+
+// If we've entered London session, prepare our variables
+if startedLD
+    saveLD := true
+    ldOpen := open
+    ldHigh := 0.0
+    ldLow := 9999999.9
+
+// If we've exited London session, save the close
+if exitedLD
+    saveLD := false
+    ldClose := close[1]
+
+// If we're within the London session, save the highest high/lowest low
+if saveLD
+    if high > ldHigh
+        ldHigh := high
+    if low < ldLow
+        ldLow := low
+
+// Plot the bar to our chart    
+plotbar(exitedLD ? ldOpen : na, exitedLD ? ldHigh : na, exitedLD ? ldLow : na, exitedLD ? ldClose : na, 
+     color=color.orange, title="London Session")
+//===== END LONDON SESSION =====//

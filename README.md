@@ -95,3 +95,20 @@ plot(displayFullCloud ? close : na, offset=-displacement + 1, color=#43A047, tit
 // ================== Clear up clutter with ternary operator on displayFullCloud == false =========================== //
 
 ```
+
+## [Session Candles](https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29483619-session-candles)
+
+- - get the current timeframe (15m, 4h, 1D, etc) of the user's choice with `timeframe.period`
+  - use the `time(_timeframe, _period-to-check)` function to see if a the current bar is within the defined time range. Here it's used in our custom function `isInSession()`
+    - `isInSession(_session) => not na( time(timeframe.period, _session) )`
+    -
+- - **array_shift()** type method in pine. We get (_potentially_) a collection of bars and we want the FIRST bar in our _"array"_ as follows:
+
+    - ``
+
+  - **array_shift()** type method in pine. We get (_potentially_) a collection of bars and we want the FIRST bar in our _"array"_ as follows:
+
+    - ``
+
+  - How to Start and Stop a period to get the **high** and **low** in the desired period (8:05)
+    - X
