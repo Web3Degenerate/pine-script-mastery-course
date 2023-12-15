@@ -1,0 +1,13 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29884999-basic-engulfing-candles
+
+// @version=5
+indicator("Basic Engulfing Candles", overlay=true)
+
+// Second candle OPENS greater than OR equal to the previous bar's CLOSE
+// could also be close[1] <= open[1]
+// See Example Image Here: https://i.imgur.com/qk6yIqJ.png
+bull_ec = close[1] < open[1] and open <= close[1] and close >= open[1]
+bear_ec = close[1] > open[1] and open >= close[1] and close <= open[1]
+
+plotshape(bull_ec, style=shape.triangleup, location=location.belowbar, color=color.green, title="Bullish EC")
+plotshape(bear_ec, style=shape.triangledown, location=location.abovebar, color=color.red, title="Bearish EC")
