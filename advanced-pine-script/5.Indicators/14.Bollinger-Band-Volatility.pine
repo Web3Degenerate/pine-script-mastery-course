@@ -10,46 +10,68 @@
 // Upper and lower bands are 1 STD above/below (?)
 
 //@version=5
+indicator("HMD Bollinger Band Volatility", shorttitle="HMD BB Volatility", overlay=true)
 
-
-// Resume at (3:31): https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/30903066-bollinger-band-volatility
-
-// Get user input
-maPeriod    = input.int(title="Middle SMA Length", defval=20, tooltip="Middle band's SMA period length")
+//Get User input - Standard vanilla deviation
+maPeriod = input.int(title="Middle SMA Length", defval=20, tooltip="Middle band's SMA period length")
 standardDev = input.float(title="Standard Deviation", defval=2.0, step=0.5, tooltip="Band's standard deviation multiplier")
-lookback    = input.int(title="Lookback", defval=10, tooltip="Lookback period for calculating Bollinger Band % change")
+// (10:00) - lookback period, default 10 bars ago
+lookback = input.int(title="Lookback Period", defval=10, tooltip="Lookback period for calculating Bollinger Band % Change")
+
+// (19:30) - Add alerts
 expAlert    = input.float(title="Expansion % Alert", defval=60.0, minval=0.0, tooltip="Expansion above this % change = trigger alert")
 conAlert    = input.float(title="Contraction % Alert", defval=-40.0, minval=-100.0, tooltip="Contraction below this % change = trigger alert")
 expColor    = input.color(title="Expansion Color", defval=color.new(color.lime,75), inline="color")
 conColor    = input.color(title="Contraction Color", defval=color.new(color.red,75), tooltip="Max expansion/contraction color gradient", inline="color")
 
 // Get Bollinger Bands
-[bbMid, bbHigh, bbLow] = ta.bb(close, maPeriod, standardDev)
+// Get multiple values from one indicator call, using a tuple
+//middle, high and low bands
+// bb() takes (1) a price source like close, (2) moving average period, (3) SD multiplier
+[bbMid, bbHigh, bbLow] = ta.bb(close, maPeriod, standardDev) // three float values
 
-// Calculate percentage change in bands
+
+// (6:45) - Calculate distance from middle band
+// Here use 1 SD multiplier
+// Percentage change in bands
+//get bbChange
 bbChange = bbHigh - bbMid
-bbDiff   = bbChange - bbChange[lookback]
-bbPct    = (bbDiff / bbChange) * 100
+// get bbChange on current bar and the last bar
+bbDiff = bbChange - bbChange[lookback]
+//Convert into Percentage (8:30)
+bbPct = (bbDiff / bbChange) * 100
 
-// Get largest expansion/contraction % over past X bars
+// Get largest expansion / contraction % over past x bars (16:30)
 maxExp = 0.0
 maxCon = 0.0
-for i = 0 to (lookback * 2)
+//loop over look back period to get max expansion and max contraction
+for i = 0 to (lookback * 2) //further lookback period, so lookback period * 2 (default 20)
     if bbPct[i] > maxExp
         maxExp := bbPct[i]
-    if bbPct[i] < maxCon
+    if bbPct[i] < maxCon    
         maxCon := bbPct[i]
 
-// Draw data to chart
+//Plot on to chart (8:55) - purple number
+// % change in bollenger band to previous bar - NOT price
 plot(bbPct, color=color.new(color.purple,100), title="Bollinger Change %")
-plot(bbMid, color=color.blue, title="Mid SMA")
-x = plot(bbHigh, color=color.red, title="Upper Band")
-y = plot(bbLow, color=color.green, title="Lower Band")
 
-// Change background of chart based on bollinger band expansion/contraction
+// Draw data to chart
+plot(bbMid, color=color.blue, title="Mid SMA")
+x = plot(bbHigh, color=color.red, title="Uppder Band")
+y = plot(bbLow, color=color.orange, title="Lower Band")
+
+
+// (12:40) - Change background of chart based on bollinger band expansion/contraction:
+// color.from_gradient(value, bottom, upper, color1, color2)
+// bgColor = color.from_gradient(bbPct, -100.0, 100.0, color.new(color.red,75), color.new(color.green,75))
+// Update lower and upper ranges to be dynamically filled
+// bgColor = color.from_gradient(bbPct, maxCon, maxExp, color.new(color.red,75), color.new(color.green,75))
+// Update color for contraction and expansion from user input (~20:30)
 bgColor = color.from_gradient(bbPct, maxCon, maxExp, conColor, expColor)
+
+// fill(x, y) so set bbHigh and bbLow plots above to variables we can use in our fill() below:
 fill(x, y, bgColor)
 
-// Generate alerts
+// (22:20) - Generate Alerts 
 alertcondition(bbPct >= expAlert, "BBV Alert (+)", "Bollinger bands for {{ticker}} have expanded {{plot_0}}%!")
 alertcondition(bbPct <= conAlert, "BBV Alert (-)", "Bollinger bands for {{ticker}} have contracted {{plot_0}}%!")
