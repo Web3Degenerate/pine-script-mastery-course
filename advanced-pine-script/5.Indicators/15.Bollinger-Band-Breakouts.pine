@@ -1,0 +1,48 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/30266355-bollinger-band-breakouts
+
+// The Chartist Website: https://www.thechartist.com.au/
+// The Chartist Youtube: https://www.youtube.com/c/ThechartistAu
+// Book - "Unholy Grails - A New Road to Wealth: https://www.amazon.com/gp/product/B007T97DJQ/ref=as_li_qf_asin_il_tl?ie=UTF8&tag=zenandthear0a-20&creative=9325&linkCode=as2&creativeASIN=B007T97DJQ&linkId=ba602b313f4b01198bbb1c01c89fbe03
+// Chat With Traders: https://chatwithtraders.com/?s=nick+radge
+
+
+// @version=5
+indicator("Bollinger Bands", overlay=true)
+
+// Get user input
+upperBandSD = input.float(title="Upper Band Std Dev", defval=3.0, tooltip="Upper band's standard deviation multiplier")
+lowerBandSD = input.float(title="Lower Band Std Dev", defval=1.0, tooltip="Lower band's standard deviation multiplier")
+maPeriod    = input.int(title="Middle Band MA Length", defval=100, tooltip="Middle band's SMA period length")
+
+// Get Bollinger Bands
+[bbIgnore1, bbHigh, bbIgnore2] = ta.bb(close, maPeriod, upperBandSD)
+[bbMid, bbIgnore3, bbLow]      = ta.bb(close, maPeriod, lowerBandSD)
+
+// Prepare trade persistent variables
+var inTrade = false
+drawEntry   = false
+drawExit    = false
+
+// Detect bollinger breakout
+if close > bbHigh and not inTrade and barstate.isconfirmed
+    inTrade   := true
+    drawEntry := true
+
+// Detect bollinger sell signal
+if close < bbLow and inTrade and barstate.isconfirmed
+    inTrade  := false
+    drawExit := true
+
+// Draw bollinger bands
+plot(bbMid, color=color.blue, title="Middle SMA")
+plot(bbHigh, color=color.green, title="Upper Band")
+plot(bbLow, color=color.red, title="Lower Band")
+
+// Draw signals
+plotshape(drawEntry, style=shape.triangleup, color=color.green, location=location.belowbar, size=size.normal, title="Buy Signal")
+plotshape(drawExit, style=shape.xcross, color=color.red, location=location.belowbar, size=size.normal, title="Sell Signal")
+
+// Generate alerts
+alertcondition(drawEntry, "BBO Buy", "Bollinger breakout detected for {{ticker}} at price: {{close}}")
+alertcondition(drawExit, "BBO Sell", "Bollinger sell detected for {{ticker}} at price: {{close}}")
+alertcondition(drawEntry or drawExit, "BBO Signal", "Bollinger signal detected for {{ticker}} at price: {{close}}")

@@ -1,0 +1,48 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29555958-lines
+
+//@version=5
+indicator("2.Draw - 10.Lines", overlay=true)
+
+getPrevBarIndex = input.int(defval=10, title="get bar index")
+getPrevLow = input.int(defval=10, title="get previous low")
+// myLine = line.new(x1=bar_index[10], y1=low[10], x2=bar_index, y2=high)
+myLine = line.new(x1=bar_index[getPrevBarIndex], y1=low[getPrevLow], x2=bar_index, y2=high, color=color.fuchsia)
+
+// (7:40) - set with bar_time instead of bar_index with xloc 
+// xloc sets the x location of your lines. 
+                                                // 60 miliseconds, times 1000 times 5 to get 5 mins
+myTimeLine = line.new(x1=time, y1=low[getPrevLow], x2=time - (60 * 1000 * 5), y2=high, xloc = xloc.bar_time)
+
+
+// (9:40) - Extend line forward (right) or backwards (left) or BOTH with extend.both
+myExtendLineRight = line.new(x1=bar_index[getPrevBarIndex], y1=low[getPrevLow], x2=bar_index, y2=high, extend=extend.right)
+
+myExtendLineLeft = line.new(x1=bar_index[getPrevBarIndex], y1=low[getPrevLow], x2=bar_index, y2=high, extend=extend.left)
+
+
+//(10:40) - line.style_arrow
+myLineArrow = line.new(x1=bar_index[getPrevBarIndex], y1=low[getPrevLow], x2=bar_index, y2=high, color=color.yellow, style=line.style_dashed, width=5)
+
+// Delete the previous line to prevent a ton of Lines
+// Because line is an object use an in-built function
+// line.set_color(myLine, color.orange)
+// line.delete(myLine) // return no lines
+
+// Delete the previous line, so thus, end up with just the last one:
+line.delete(myLine[1])
+// line.set_color(myLine, color.orange) //Can also set color in line call above.
+line.set_width(myLine, 5)
+
+line.delete(myTimeLine[1])
+line.set_color(myTimeLine, color.red)
+
+line.delete(myExtendLineRight[1])
+line.set_color(myExtendLineRight, color.purple)
+
+line.delete(myExtendLineLeft[1])
+line.set_color(myExtendLineLeft, color.blue)
+
+line.delete(myLineArrow[1])
+
+// (12:15) - Conditionally set style of line 
+line.set_style(myExtendLineLeft, close > open ? line.style_dashed : line.style_solid)

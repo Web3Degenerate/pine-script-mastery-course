@@ -1,0 +1,57 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29555190-labels
+
+//@version=5
+indicator("2.Draw - 11.Labels", overlay=true)
+
+// (3:40) - Add new label with label.new(x location, y location, text to display)
+// myLabel = label.new(x=bar_index, y=low, text="Close: " + str.tostring(close))
+// (11:20) - offset using bar_index - x (number bars past or future)
+// myLabel = label.new(x=bar_index - 15, y=low, text="Close: " + str.tostring(close))
+
+// default yloc.price, so override with yloc.abovebar: 
+// myLabel = label.new(
+//      x=bar_index -1, 
+//      y=low, text="Close: " + str.tostring(close[1]), 
+//      yloc=yloc.belowbar, 
+//      color=close > open ? color.green : color.red,
+//      style=label.style_label_up
+//      )
+
+// Custom function from tradingcode.net on lower wick custom function: https://www.tradingcode.net/tradingview/lower-wick-range/
+LowerWickRange() =>
+    math.min(open, close) - low
+displayLowerWick = LowerWickRange()
+
+// (20:30) - get ATR for tooltip
+atr = ta.atr(14)
+
+// (23:50) - set up conditional default label (green vs red) if close greater than open: (used when inside bar)
+myDefaultLabelColor = close > open ? color.green : color.red
+
+// use price to get label to be by the bar when moving left/right
+myLabel = label.new(
+     x=bar_index, //x=bar_index + 1, Moves the label further to the right (15:23)
+     y=low, text="Close: " + str.tostring(close) + "\n Open: " + str.tostring(open) + "\n High: " + str.tostring(high) + "\n Low: " + str.tostring(low), 
+     yloc=yloc.price, 
+    //  color=close > open ? color.green : color.red,
+     color=myDefaultLabelColor,
+     style=label.style_label_upper_left,
+     textcolor=color.white,
+     //size=size.huge // size.tiny
+     textalign=text.align_right,  //align right, center and left, top and bottom won't work on labels (19:50)
+     tooltip="LFGMN! The Current ATR is: " + str.tostring(atr)
+     )
+
+// (9:50) - Time (ms) instead of bar_index. Use time - (60 * 1000 * 5) to go back 5 minutes. 
+// myLabel = label.new(x=time - (60 * 1000 * 5), y=low, text="Close: " + str.tostring(close), xloc=xloc.bar_time)
+
+label.delete(myLabel[1])
+
+// (22:45) - [OVERRIDES] Set label color based on low of previous bar or current high greater than last bar's high
+label.set_color(myLabel, low < low[1] ? color.purple : high > high[1] ? color.blue : myDefaultLabelColor)
+
+// (25:30) - use syminfo.type == "crypto" to do the following if chart type is crypto (all lowercase)
+if syminfo.type == "crypto"
+    label.set_size(myLabel, size.large)
+
+plot(na)
