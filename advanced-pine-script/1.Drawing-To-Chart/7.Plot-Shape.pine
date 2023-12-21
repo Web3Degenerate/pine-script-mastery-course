@@ -1,0 +1,48 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29554564-plot-shape
+
+//@version=5
+indicator("2.Draw - 7.Plot Shape", overlay=true)
+
+//Set up boolean values for higher close and lower close
+higherClose = close > high[1]
+lowerClose = close < high[1]
+
+// Get user input on how many bars back to show the higher, lower close
+higherCloseCandleCount=input.int(defval=10, title="# Bars Back - Higher Close", tooltip="Select how many bars back to show the Higher Close")
+lowerCloseCandleCount=input.int(defval=10, title="# Bars Back - Lower Close", tooltip="Select how many bars back to show the Lower Close")
+
+//By default, plot 'X' on bars that qualify.
+// location.absolute uses a price location: 
+// plotshape(higherClose ? 40000 : na, 
+//      title="Higher Close", 
+//      style=shape.triangleup, 
+//      location=location.absolute, 
+//      color=color.green
+//      )
+
+plotshape(
+     higherClose, 
+     title="Higher Close", 
+     style=shape.triangleup, 
+     location=location.belowbar, 
+     color=color.green,
+    //  offset=1 / -1
+     text="HC",
+     textcolor=color.green,
+    //  editable=false //true by default
+     size=size.auto,  //auto adjusts based on view
+    //  show_last=10   //only 10 most recent bars
+     show_last=higherCloseCandleCount
+    //  display=display.none || display.all by default
+     )
+
+plotshape(
+     lowerClose, 
+     title="Lower Close", 
+     style=shape.triangledown, 
+     location=location.abovebar, 
+     color=color.red,
+     text="LC",
+     textcolor=color.red,
+     show_last=lowerCloseCandleCount
+     )
