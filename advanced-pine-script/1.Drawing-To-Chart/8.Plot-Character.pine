@@ -1,0 +1,12 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29555016-plot-character
+
+//@version=5
+indicator("2.Draw - 8.Plot Character", overlay=true)
+
+// plotchar(barstate.islast) // plots star over last bar by default
+plotchar(barstate.isconfirmed, char="XX", color=color.maroon) //only plots the first character. Color only works on text.
+
+myTextColor = close > open[1] ? color.green : color.red
+
+plotchar(barstate.islast, char="🧅", location=location.top, text="Onion", textcolor=color.green)
+plotchar(barstate.islast, char="🧅", location=location.top, text="Onion", textcolor=myTextColor)

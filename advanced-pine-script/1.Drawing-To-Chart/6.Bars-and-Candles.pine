@@ -1,0 +1,12 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29483329-bars-candles
+
+//@version=5
+indicator("2.Draw - 6.Bar-and-Candles")
+
+c = close > open ? color.green : color.red
+
+// plotcandle()
+// plotcandle(open, high, low, close, title="Candle", color=c, wickcolor=c, bordercolor = color.fuchsia)
+
+// (4:15) plotbar() 
+plotbar(open, high, low, close, color=c, title="bar")
