@@ -1,0 +1,17 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29555039-plot-arrow
+
+//@version=5
+indicator("2.Draw - 9.Plot Arrow", overlay=true)
+
+
+//plotarrow() takes float. Here we get negative number, (close - high)
+// plotarrow(close - high) //automatically draws red arrow down
+
+// plotarrow(high - close, title="Arrow Up", colorup=color.blue) //automatically draws positive number (high - close) below bar and in green. 
+
+plotarrow(open - close, title="Open - Close Arrows", colorup = color.yellow, colordown = color.blue)
+
+
+// plotarrow(open - close, title="Arrow", offset=1)
+
+// plotarrow(open - close, minheight = 1, maxheight = 500) //set min and max height in pixels
