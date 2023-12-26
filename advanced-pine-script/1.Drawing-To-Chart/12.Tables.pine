@@ -1,0 +1,38 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29555193-tables
+
+//@version=5
+indicator("2. Draw - 12.Tables", overlay=true)
+
+// Only 1 table. Single instance / object. Top Left, middle or right or bottom. 
+
+// var x = 0
+// if barstate.islast
+//     x := 87
+// plot(x)
+
+// (4:20) - (5:20) - use built in function .new() and define table variable with table keyword.  
+// var table myTable = table.new(position.top_right, columns=2, rows=2, border_width = 2, bgcolor=color.black)
+
+//(14:45) - Move the 'bgcolor=color.black' to the individual cells to get the visible borders between cells:
+//(18:30) - Override table position (position.bottom_left)
+var table myTable = table.new(position.top_right, columns=2, rows=2, border_width = 5, bgcolor=color.black, border_color=color.white,
+     frame_color=color.orange,
+     frame_width=5)
+
+
+// (8:10) - Draw Table (best practice, only draw on final bar)
+if barstate.islast 
+        // table.cell(myTable, 0, 0, text="Open: " + str.tostring(open), text_color=color.white, bgcolor=color.black)
+        // table.cell(myTable, 0, 1, text="High: " + str.tostring(high), text_color=color.white, bgcolor=color.black)
+        // table.cell(myTable, 1, 0, text="Low: " + str.tostring(low), text_color=color.white, bgcolor=color.black)
+        // table.cell(myTable, 1, 1, text="Close: " + str.tostring(close), text_color=color.white, bgcolor=color.black)
+//(16:50) Add second if statement to check if close is lower than open (bearish)
+                                                                                        //width & height is cell width/height
+    table.cell(myTable, 0, 0, text="Open: " + str.tostring(open), text_color=color.white, width=5, height=5, text_size=size.small)
+    table.cell(myTable, 0, 1, text="High: " + str.tostring(high), text_color=color.white, width=5, text_valign=text.align_top)
+    table.cell(myTable, 1, 0, text="Low: " + str.tostring(low), text_color=color.white, height=5, text_size=size.normal)
+    table.cell(myTable, 1, 1, text="Close: " + str.tostring(close), text_color=color.white, text_halign = text.align_left) 
+    if close < open 
+        table.set_bgcolor(myTable, color.red)
+    if close > open
+        table.set_bgcolor(myTable, color.green)
