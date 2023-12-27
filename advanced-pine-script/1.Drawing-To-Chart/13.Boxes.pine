@@ -1,0 +1,51 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29738194-boxes
+
+//@version=5
+indicator("2.Draw - 13.Boxes", overlay=true)
+
+// Create box with box.new() - (0:55)
+// left, right, top, bottom is bar_index by default. (time other option)
+if barstate.islast
+    whatIsInThe = box.new(
+         left=bar_index - 1,
+         top=high[0],
+         right=bar_index + 10, //draws box out to the right 10 barstate
+         bottom=low[0],
+         border_color=color.gray,
+         border_width=2,
+         border_style=line.style_dashed,
+        //  extend=extend.both,
+         extend=extend.none,
+        //  bgcolor=color.silver
+        // To make it transparent use color.new(color, transparency level)
+         bgcolor=color.new(color.silver, 60)
+         )
+// (5:50) - if close is greater than open (so it's a bullish bar): 
+    if close > open
+        //override box settings when condition is true
+        box.set_bgcolor(whatIsInThe, color.new(color.green, 50))
+    if close < open
+        //override box settings when condition is true
+        box.set_bgcolor(whatIsInThe, color.new(color.red, 50))
+
+// (7:20) - To remove a box when condition is met, use box.delete(id)
+        // box.delete(whatIsInThe)
+
+
+// (7:50) - use time instead of bar_index with xloc
+if barstate.islastconfirmedhistory
+    timeBox = box.new(
+        //  left=bar_index - 1,
+         left=time,
+         top=high[0],
+        //  right=bar_index - 10, //draws box out to the right 10 barstate
+         right = time - (60 *1000 * 60 * 10), //time in ms (midnight 1970) 1 hour is (60 *1000 *60), so 10 hours would be: "+(60 *1000 * 60 * 10)"
+         bottom=low[0],
+         border_color=color.gray,
+         border_width=2,
+         border_style=line.style_dashed,
+         extend=extend.none,
+         xloc=xloc.bar_time,
+         bgcolor=color.new(color.fuchsia, 60)
+         )
+
