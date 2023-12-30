@@ -1,0 +1,37 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/30849404-engulfing-candle-micro-gaps
+
+//@version=5
+indicator("3.Candlestick Patterns - 4.Engulfing Candle Micro-Gaps", overlay=true)
+
+// Get user input for the number of bars back for swing high
+swingHighBarsBack = input.int(title="Swing High Lookback", defval=10, minval=1, tooltip="Enter Number Bars Back")
+swingLowBarsBack = input.int(title="Swing Low Lookback", defval=10, minval=1, tooltip="Enter Number Bars Back")
+
+// Get (error) point allowance
+pointAllowance = input.int(title="Point Allowance", defval=0, tooltip="Maximum gap allowed in points on engulfing candles")
+
+
+// Check swing high/low filter (mintick is the decimal level of selected symbol)
+var allowance = syminfo.mintick * pointAllowance //This allows for engulfing candles that don't quite fully engulf due to micro gaps
+swingHigh = high == ta.highest(high, swingHighBarsBack) or high[1] == ta.highest(high, swingHighBarsBack)
+swingLow = low == ta.lowest(low, swingLowBarsBack) or low[1] == ta.lowest(low, swingLowBarsBack)
+
+// Detect valid engulfing candles
+//
+// (6:05): Add allowance to close greater/less than previous open
+bull_ec = close[1] < open[1] and open <= (close[1] + allowance) and close >= (open[1] + allowance) and swingLow
+bear_ec = close[1] > open[1] and open >= (close[1] - allowance) and close <= (open[1] - allowance) and swingHigh
+
+plotshape(bull_ec, style=shape.triangleup, location=location.belowbar, color=color.green, title="Bullish EC")
+plotshape(bear_ec, style=shape.triangledown, location=location.abovebar, color=color.red, title="Bearish EC")
+
+bgcolor(bull_ec ? color.green : na)
+bgcolor(bear_ec ? color.red : na)
+
+
+//ERROR: 'Cannot use 'plotchar' in local scope:
+// if bull_ec == false
+//     plotchar(barstate.isconfirmed, char="🧅", location=location.top, text="bear_ec", textcolor=color.red)
+
+// if bear_ec == false
+//     plotchar(barstate.isrealtime, char="🧅", location=location.top, text="bull_ec", textcolor=color.green) 

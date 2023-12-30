@@ -19,14 +19,25 @@ swingLow = low == ta.lowest(low, swingLowBarsBack) or low[1] == ta.lowest(low, s
 ema = ta.ema(close, 9) //switched from 50 to 9 to get some swing high/lows on btc.
 plot(ema)
 
-
 // Second candle OPENS greater than OR equal to the previous bar's CLOSE
 // could also be close[1] <= open[1]
                                     //much more accurate candlestick pattern than simple engulfing pattern
                                     //his preferred engulfing pattern he likes to use in his own scripts
                                                                     // (5:00) current close greater/less than current ema
-bull_ec = close[1] < open[1] and open <= close[1] and close >= open[1] and swingLow and close > ema
-bear_ec = close[1] > open[1] and open >= close[1] and close <= open[1] and swingHigh and close < ema
+// EMA FILTER
+// bull_ec = close[1] < open[1] and open <= close[1] and close >= open[1] and swingLow and close > ema
+// bear_ec = close[1] > open[1] and open >= close[1] and close <= open[1] and swingHigh and close < ema
+
+
+// (6:30) - Now use rsi (14) to refine locating swing high/lows: 
+
+// RSI FILTER
+rsi =  ta.rsi(close, 14)
+
+// rsi < 30 means that it is over sold. 
+// rsi > 70 means that it is over bought.
+bull_ec = close[1] < open[1] and open <= close[1] and close >= open[1] and swingLow and rsi < 30
+bear_ec = close[1] > open[1] and open >= close[1] and close <= open[1] and swingHigh and rsi > 70
 
 plotshape(bull_ec, style=shape.triangleup, location=location.belowbar, color=color.green, title="Bullish EC")
 plotshape(bear_ec, style=shape.triangledown, location=location.abovebar, color=color.red, title="Bearish EC")
