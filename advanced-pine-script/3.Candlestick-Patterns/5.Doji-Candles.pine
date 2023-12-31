@@ -1,0 +1,61 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29852259-doji-candles
+
+// method for detecting indecision candles (aka "dojis")
+// Small body. Top and bottom wicks are similar in size.
+
+//@version=5
+indicator("3.Candlestick - 5.Doji Candles", overlay=true)
+
+// Get user input:
+// Let the user decide how much larger one wick can be than the other before declaring invalid. 
+// By default the top wick must be within 2 times the bottom wick (1:10)
+maxWickSize = input.float(title="Max Wick Size", defval=2.0)
+// Maximum body size percentage in relation to the entire candle. Default value of 0.05 (5% or less of the total candle size)
+maxBodySize = input.float(title="Max Body Size", defval=0.05)
+
+//Added user input to get bars back for swing high/low dojis
+swingHighBarsBack = input.int(title="Swing High Lookback", defval=10, minval=1, tooltip="Enter Number Bars Back")
+swingLowBarsBack = input.int(title="Swing Low Lookback", defval=10, minval=1, tooltip="Enter Number Bars Back")
+
+// (2:20) Get candle data (Top wick, Bottom wick and Body size) so we can compare them.
+// Getting sizes in points.
+topWickSize = high - (close > open ? close : open) //get highest body whether open or close.
+bottomWickSize = (close < open ? close : open) - low //get lowest body whether close or open.
+// (4:16) - math.abs() gives us the absolute value so we avoid dividing by negative numbers (bullish candle open - close negative #)
+    // body size in points = (open - close)
+    // candle size in points = (high - low)
+                    // (body/candlesize)
+bodyPercent = math.abs(open - close) / (high - low)
+
+//(7:40) Doji is supposed to represent indecision in a market and usually a sign of impending reversal. 
+// Get our filters: 
+    //check current doji bar high
+// swingHigh = high == ta.highest(high, 10)
+// swingLow = low == ta.lowest(low, 10)
+swingHigh = high == ta.highest(high, swingHighBarsBack)
+swingLow = low == ta.lowest(low, swingLowBarsBack)
+
+
+// (5:40) - Determine if the current bar is a valid doji candle
+// Doji Boolean checks 3 things: 
+        // (1) check top wick less/equal than (bottom wick size * maxWickSize setting)
+        // (2) check bottom wick less/equal than (topWickSize * maxWickSize setting)
+        // (3) check body percent less/equal maxBodySize setting
+doji = topWickSize <= bottomWickSize * maxWickSize and bottomWickSize <= topWickSize * maxWickSize and bodyPercent <= maxBodySize
+//(9:05) Add doji Bull/Bear
+    //Check do we have doji and is it a swingLow
+dojiBull = doji and swingLow
+dojiBear = doji and swingHigh
+
+
+    // (6:35) draw dojis to the chart via plotshape()
+// plotshape(doji, style=shape.xcross)
+    // (9:30) plot doji bull/Bear
+plotshape(dojiBull, style=shape.triangleup, location=location.belowbar, color=color.yellow)
+plotshape(dojiBear, style=shape.triangledown, location=location.abovebar, color=color.blue)
+
+
+//(added my highlighter, easier to see)
+bgcolor(doji ? color.blue : na)
+bgcolor(dojiBull ? color.green : na)
+bgcolor(dojiBear ? color.red : na)
