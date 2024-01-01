@@ -6,7 +6,7 @@
 
 ## [Catch Micro-gaps ](https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/30849404-engulfing-candle-micro-gaps)
 
-# [Doji Candles](https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29852259-doji-candles)
+## [Doji Candles](https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29852259-doji-candles)
 
 - - Shooting Star Example:
 
@@ -14,3 +14,12 @@
 
   - Doji Candle Example:
     - ![Example Doji Candle](https://i.imgur.com/4G0MrDN.png)
+
+
+
+## [Hammer & Shooting Star Candles]()
+- 
+  - Example of finding hammerCandle and starCandle:
+    - ![Hammer/Shooting Star example](https://i.imgur.com/MGFMUNc.png)
+
+    

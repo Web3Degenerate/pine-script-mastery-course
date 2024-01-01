@@ -1,0 +1,53 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29851966-hammers-shooting-stars
+
+//@version=5
+indicator("3.Candles - 6.Hammers & Shooting Stars", overlay=true)
+
+//Generally a sign of reverse momentum
+// Rules for valid hammer candle or shooting star:
+    // 1. Drag fib tool from bottom to top of candle. See (2:15)
+        // Use fib level of 0.333
+
+// Get user input
+// fibLevel = 0.333 (our default fib level)
+// (9:05) - Change to user input and add colorFilter
+fibLevel = input.float(title="Set Fib Level", defval=0.333)
+colorFilter = input.bool(title="Color Filter", defval=false)
+// (12:10) - Add atrFilter: https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29851966-hammers-shooting-stars
+
+
+// Calculate fibonacci level for current candle
+// bullFib is for hammers
+// (90-100) * 0.333 + 100
+bullFib = (low - high) * fibLevel + high
+// bearFib is for Shooting Stars
+bearFib = (high - low) * fibLevel + low
+
+// setBullFib = input.float(title="Bull Fib", defval=bullFib)
+// setBearFib = input.float(title="Bear Fib", defval=bearFib)
+plot(bullFib, color=color.rgb(30, 34, 30))
+plot(bearFib, color=color.red)
+
+// Determine which price source closes or opens highest/lowest:
+    // This is for our filter to determine if our candle is in the upper/lower 3rd
+    //So check if the fib line is lower than the close
+//First, find out if the close or open is lower: 
+lowestBody = close < open ? close : open
+// highestBody = open > close ? open : close
+highestBody = close > open ? close : open
+
+// (6:45) - Set hammerCandle and starCandle boolean values
+// hammerCandle = lowestBody >= bullFib
+// starCandle = highestBody <= bearFib
+// (~11:15) - Add "colorFilter" to ignore bearish hammerCandle and bullish starCandles
+hammerCandle = lowestBody >= bullFib and (not colorFilter or close > open)
+starCandle = highestBody <= bearFib and (not colorFilter or close < open)
+
+//(7:15) - Plot our candle patterns
+plotshape(hammerCandle, style=shape.triangleup, location=location.belowbar, color=color.green)
+plotshape(starCandle, style=shape.triangledown, location=location.abovebar, color=color.red)
+
+bgcolor(hammerCandle ? color.rgb(157, 241, 160) : na)
+bgcolor(starCandle ? color.rgb(247, 182, 182) : na)
+
+// (9:05) - Ignore GREEN shooting stars (bearish) and RED hammer candles (bullish)
