@@ -1,0 +1,56 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29852785-piercing-line-dark-cloud
+
+//@version=5
+indicator("3.Candles - 8.Piercing Line & Dark Cloud", overlay=true)
+//more of a stock market pattern. He doesn't use (in forex with few gaps)
+
+// Calculate 50% mark of previous bar: (2:10)
+piercingLine = (low[1] - high[1]) * 0.5 + high[1]
+// plot(piercingLine)
+
+
+// (7:10) - Add final filter
+// rsi = ta.rsi(close, 14)
+//(10:45) let user change rsi close period, ex 7 found more buy sell opportunities in his example: 
+getRsiPeriod = input.int(title="Set RSI Period", defval=14)
+rsi = ta.rsi(close, getRsiPeriod)
+
+//check current or previous rsi less than 30 (OVERSOLD)
+bullishFilters = rsi < 30 or rsi[1] < 30
+//check current/previous rsi over bought:
+bearishFilters = rsi > 70 or rsi[1] > 70
+
+// Detect bullish piercing line 
+    //1. did previous bar close lower than it opened: close[1] < open[1] (bullish)
+    //2. Did current bar open lower than previous bar's close: open < close[1]
+// bpc = close[1] < open[1] and open < close[1]
+    //3. Add piercingLine to bpc. Official rules >=. Could make >
+// bpc = close[1] < open[1] and open < close[1] and close >= piercingLine
+    //4. could add another filter, current close greater previous bar's high
+// bpc = close[1] < open[1] and open < close[1] and close >= piercingLine and close > high[1]
+    //5. (8:00) - Add bullishFilters to bpc
+// bpc = close[1] < open[1] and open < close[1] and close >= piercingLine and close > high[1] and bullishFilters
+    //6. (10:00) - Add final filter that current bar is bullish (close > open)
+bpc = close[1] < open[1] and open < close[1] and close >= piercingLine and close > high[1] 
+     and close > open and bullishFilters
+
+//(5:15) - Detect Dark Cloud, which is Piercing Line in opposite direction: 
+// dcc = close[1] > open[1] and open > close[1] and close <= piercingLine
+    //add filter (6:20)
+// dcc = close[1] > open[1] and open > close[1] and close <= piercingLine and close > low[1]
+    //add bearishFilters (8:10)
+// dcc = close[1] > open[1] and open > close[1] and close <= piercingLine and close > low[1] and bearishFilters
+    // add final filter that current bar is bearish close < open
+dcc = close[1] > open[1] and open > close[1] and close <= piercingLine and close > low[1] 
+     and close < open and bearishFilters
+
+plotshape(bpc, style=shape.triangleup, location=location.belowbar, color=color.green)
+plotshape(dcc, style=shape.triangledown, location=location.abovebar, color=color.red)
+
+//Add my highlighter
+bgcolor(bpc ? color.rgb(177, 233, 160) : na)
+bgcolor(dcc ? color.rgb(241, 182, 163) : na)
+
+//might compare this with rsi overbought/sold. 
+
+//maybe price needs to be above a moving average
