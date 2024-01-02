@@ -1,5 +1,7 @@
 // https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29851966-hammers-shooting-stars
 
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29851966-hammers-shooting-stars
+
 //@version=5
 indicator("3.Candles - 6.Hammers & Shooting Stars", overlay=true)
 
@@ -14,6 +16,15 @@ indicator("3.Candles - 6.Hammers & Shooting Stars", overlay=true)
 fibLevel = input.float(title="Set Fib Level", defval=0.333)
 colorFilter = input.bool(title="Color Filter", defval=false)
 // (12:10) - Add atrFilter: https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29851966-hammers-shooting-stars
+//eliminate micro hammer/stars saying candle size must be at least 10% of ATR by default 
+atrFilter = input.float(title="ATR Filter", defval=0.1)
+
+//Check our ATR filter (default 14 days)
+atr = ta.atr(14)
+//get current candle size in pips or points with high - low
+candleSize = high - low
+// ATR filter check = is current candle size >= atr * atrFilter
+atrFilterCheck = candleSize >= atr * atrFilter
 
 
 // Calculate fibonacci level for current candle
@@ -36,12 +47,17 @@ lowestBody = close < open ? close : open
 // highestBody = open > close ? open : close
 highestBody = close > open ? close : open
 
-// (6:45) - Set hammerCandle and starCandle boolean values
-// hammerCandle = lowestBody >= bullFib
-// starCandle = highestBody <= bearFib
-// (~11:15) - Add "colorFilter" to ignore bearish hammerCandle and bullish starCandles
-hammerCandle = lowestBody >= bullFib and (not colorFilter or close > open)
-starCandle = highestBody <= bearFib and (not colorFilter or close < open)
+    // (6:45) - Set hammerCandle and starCandle boolean values
+    // hammerCandle = lowestBody >= bullFib
+    // starCandle = highestBody <= bearFib
+    // (~11:15) - Add "colorFilter" to ignore bearish hammerCandle and bullish starCandles
+// hammerCandle = lowestBody >= bullFib and (not colorFilter or close > open)
+// starCandle = highestBody <= bearFib and (not colorFilter or close < open)
+    //(13:10) - add atrFilterCheck to hammerCandle and starCandle:
+hammerCandle = lowestBody >= bullFib and (not colorFilter or close > open) and atrFilterCheck
+starCandle = highestBody <= bearFib and (not colorFilter or close < open) and atrFilterCheck
+
+
 
 //(7:15) - Plot our candle patterns
 plotshape(hammerCandle, style=shape.triangleup, location=location.belowbar, color=color.green)

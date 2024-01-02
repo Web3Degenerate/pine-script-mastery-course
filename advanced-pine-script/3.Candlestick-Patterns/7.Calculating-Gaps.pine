@@ -1,0 +1,16 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29852387-calculating-gaps
+
+//@version=5
+indicator("3.Candlesticks - 7.Calculating Gaps", precision=3) //precision 3 decimals. 
+
+//get gap close value
+// gapClose = ((open - close[1]) / open) * 100 // gives gap %
+gapClose = math.abs( ((open - close[1]) / open) * 100 ) // make positive
+
+//measure from low to high gap distance percentage:
+gapDistance = low > high[1] ? ((low - high[1]) / low) * 100 : ((high - low[1]) / high ) * 100
+
+//plot gapClose
+plot(gapClose, color=color.purple)
+//plot gapDistance
+plot(gapDistance, color=color.white)
