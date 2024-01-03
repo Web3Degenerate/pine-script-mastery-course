@@ -1,0 +1,35 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29851707-zen-library-patterns
+
+//@version=5
+indicator("3.Candles - Zen Library Patterns", shorttitle="Zen-Library-Intro", overlay=true)
+
+// Import Zen Library
+import ZenAndTheArtOfTrading/ZenLibrary/2 as zen 
+
+// Detect Patterns
+// PARAMS: (1) Point ALlowance, (2) Wick size to body, (3) boolean (engulf the wick)
+bullish_ec = zen.isBullishEC()
+bearish_ec = zen.isBearishEC()
+// Could add swing high bearish engulfing pattern: 
+// bearish_ec = zen.isBearishEC() and high == ta.highest(high, 10)
+
+// Hammer and Stars
+// Hammer params (1) (9:10) - fib level ie 0.25 level of body, (2) bool, (3) 
+// hammer = zen.isHammer(_fib = 0.25, _colorMatch = true)
+// star = zen.isStar(_fib = 0.25, _colorMatch = true)
+hammer = zen.isHammer()
+star = zen.isStar()
+
+// Doji CANDLE
+// Doji Params: (1) _wickSize and (2) _bodySize
+// bottom wick size in relation to the top wick. 
+dogi = zen.isDoji(2, 0.1) //default doji can be 50% of x (0.5)
+
+// Draw Patterns
+plotshape(bullish_ec, style=shape.triangleup, color=color.green, location=location.belowbar, text="BullEC")
+plotshape(bearish_ec, style=shape.triangledown, color=color.red, location=location.abovebar, text="BearEC")
+
+plotshape(hammer, style=shape.triangledown, color=color.green, location=location.abovebar, text="Hammer")
+plotshape(star, style=shape.triangledown, color=color.red, location=location.abovebar, text="Star")
+
+plotshape(dogi, style=shape.xcross, color=color.blue, location=location.abovebar, text="Doji")
