@@ -15,11 +15,14 @@
   - Doji Candle Example:
     - ![Example Doji Candle](https://i.imgur.com/4G0MrDN.png)
 
+## [Hammer and Shooting Star Candles](https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29851966-hammers-shooting-stars)
 
+- - Example of Valid Hammer Candle:
 
-## [Hammer & Shooting Star Candles]()
-- 
+    - ![Hammer Candle](https://i.imgur.com/P3IGJe4.png)
+
+  - _Hammer Candle is potentially a sign of reversing momentum_.
+  - Bulls push body back up to upper third of candle in example above.
+
   - Example of finding hammerCandle and starCandle:
     - ![Hammer/Shooting Star example](https://i.imgur.com/MGFMUNc.png)
-
-    
