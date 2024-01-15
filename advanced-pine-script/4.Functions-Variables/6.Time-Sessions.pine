@@ -1,0 +1,11 @@
+//https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29854121-time-sessions
+
+
+// @version=5
+indicator("Time Session", overlay=true)
+
+session = input.session(title="Time Session to Highlight", defval="0900-1800")
+
+isInSession(_sess) => not na(time(timeframe.period, _sess))
+
+bgcolor(isInSession(session) ? color.new(color.red,75) : na)
