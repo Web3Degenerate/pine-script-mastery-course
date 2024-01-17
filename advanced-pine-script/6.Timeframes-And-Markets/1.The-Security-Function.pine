@@ -1,0 +1,10 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29955470-the-security-function
+
+nonRepaintingSecurity(_symbol, _timeframe, _data) =>
+    request.security(_symbol, _timeframe, _data[barstate.isrealtime ? 1 : 0])[barstate.isrealtime ? 0 : 1]
+
+// Get Higher Time Frame price data
+htf_close = nonRepaintingSecurity(syminfo.tickerid, htf, close[barstate.isrealtime ? 1 : 0])
+htf_open = nonRepaintingSecurity(syminfo.tickerid, htf, open[barstate.isrealtime ? 1 : 0])
+htf_high = nonRepaintingSecurity(syminfo.tickerid, htf, high[barstate.isrealtime ? 1 : 0])
+htf_low = nonRepaintingSecurity(syminfo.tickerid, htf, low[barstate.isrealtime ? 1 : 0])
