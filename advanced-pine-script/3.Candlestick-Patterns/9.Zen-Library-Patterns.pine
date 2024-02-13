@@ -1,5 +1,25 @@
 // https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29851707-zen-library-patterns
 
+indicator("3.Candles - 9.Zen Library Patterns", overlay=true)
+
+// Import Zen Library
+import ZenAndTheArtOfTrading/ZenLibrary/2 as zen
+
+// Detect patterns
+bullish_ec  = zen.isBullishEC()
+bearish_ec  = zen.isBearishEC()
+hammer      = zen.isHammer()
+star        = zen.isStar()
+doji        = zen.isDoji()
+
+// Draw patterns
+plotshape(bullish_ec, style=shape.triangleup, color=color.green, location=location.belowbar, text="EC")
+plotshape(bearish_ec, style=shape.triangledown, color=color.red, location=location.abovebar, text="EC")
+plotshape(hammer, style=shape.triangleup, color=color.green, location=location.belowbar, text="Hammer")
+plotshape(star, style=shape.triangledown, color=color.red, location=location.abovebar, text="Star")
+plotshape(doji, style=shape.xcross, color=color.blue, location=location.abovebar, text="Doji")
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/29851707-zen-library-patterns
+
 //@version=5
 indicator("3.Candles - Zen Library Patterns", shorttitle="Zen-Library-Intro", overlay=true)
 

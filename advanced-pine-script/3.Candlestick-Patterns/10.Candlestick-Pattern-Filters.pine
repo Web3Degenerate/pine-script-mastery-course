@@ -1,0 +1,42 @@
+// https://courses.theartoftrading.com/courses/take/pine-script-mastery/lessons/30628182-candlestick-pattern-filters
+
+// @version=5
+indicator("Candle Filters", overlay=true)
+
+// Get user input
+var g_atr    = "ATR Filter"
+maxAtrSize   = input.float(title="Max Candle Size", defval=1.0, tooltip="Script divides candle size by ATR and compares it to this", group=g_atr)
+useAtrFilter = input.bool(title="Use ATR Filter?", defval=false, tooltip="Turns on/off the ATR filter", group=g_atr)
+var g_ema    = "EMA Filter"
+emaLength    = input.int(title="EMA Length", defval=50, tooltip="Length of the EMA filter", group=g_ema)
+useEmaFilter = input.bool(title="Use EMA Filter?", defval=false, tooltip="Turns on/off the EMA filter", group=g_ema)
+var g_hl     = "High/Low Filter"
+lookback     = input.int(title="Swing High/Low Lookback", defval=10, tooltip="How many bars to look back for swing high/low", group=g_hl)
+useHlFilter  = input.bool(title="Use Swing High/Low Filter?", defval=false, tooltip="Turns on/off the swing high/low filter", group=g_hl)
+
+// Get ATR filter
+atr = ta.atr(14)
+candleSize = high - low
+atrFilter = not useAtrFilter or (candleSize / atr < maxAtrSize)
+
+// Get EMA filter
+ema = ta.ema(close, emaLength)
+emaFilterLong = not useEmaFilter or close > ema
+emaFilterShort = not useEmaFilter or close < ema
+
+// Get swing high/low filter
+swingHighFilter = not useHlFilter or (high == ta.highest(high, lookback) or high[1] == ta.highest(high, lookback))
+swingLowFilter  = not useHlFilter or (low == ta.lowest(low, lookback) or low[1] == ta.lowest(low, lookback))
+
+// Detect candlestick pattern
+bull_ec = close[1] < open[1] and open <= close[1] and close >= open[1] and swingLowFilter and atrFilter and emaFilterLong
+bear_ec = close[1] > open[1] and open >= close[1] and close <= open[1] and swingHighFilter and atrFilter and emaFilterShort
+
+// Draw signals & data
+plotshape(bull_ec, style=shape.triangleup, location=location.belowbar, color=color.green, title="Bullish EC")
+plotshape(bear_ec, style=shape.triangledown, location=location.abovebar, color=color.red, title="Bearish EC")
+plot(useEmaFilter ? ema : na, color=emaFilterLong ? color.green : color.red, title="EMA")
+
+// Generate alerts
+alertcondition(bull_ec, "Bullish EC", "Bullish engulfing candle detected on {{ticker}}")
+alertcondition(bear_ec, "Bearish EC", "Bearish engulfing candle detected on {{ticker}}")
