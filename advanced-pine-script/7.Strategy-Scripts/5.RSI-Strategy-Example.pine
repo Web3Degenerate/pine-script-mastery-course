@@ -1,0 +1,69 @@
+// Imported the RSI indicator code from Section 5.Indicators - Lesson #6.RSI-Chart-Signals.pine
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// @version=5
+strategy("RSI Strategy", overlay=true)
+
+// Import Zen Library
+import ZenAndTheArtOfTrading/ZenLibrary/2 as zen
+
+// Get user input
+lookback     = input.int(title="Lookback", defval=7)
+rsiLen       = input.int(title="RSI Length", defval=7)
+rsiOB        = input.float(title="RSI Overbought", defval=80.0)
+rsiOS        = input.float(title="RSI Oversold", defval=20.0)
+multiplier   = input.float(title="ATR Multiplier", defval=1.0)
+rr           = input.float(title="Risk:Reward", defval=1.0)
+riskPerTrade = input.float(title="Risk Per Trade %", defval=1.0)
+
+// Get RSI value
+rsi = ta.rsi(close, rsiLen)
+rsiSell = rsi > rsiOB
+rsiBuy  = rsi < rsiOS
+
+// Get ATR value
+atr = ta.atr(14)
+
+// Detect candle patterns
+bullEC = zen.isBullishEC()
+bearEC = zen.isBearishEC()
+
+// Detect buy and sell signals
+buySignal  = bullEC and (rsiBuy or rsiBuy[1]) and not na(atr) and barstate.isconfirmed and strategy.position_size == 0
+sellSignal = bearEC and (rsiSell or rsiSell[1]) and not na(atr) and barstate.isconfirmed and strategy.position_size == 0
+
+// Calculate stops & targets
+longStop  = ta.lowest(low, lookback) - (atr * multiplier)
+shortStop = ta.highest(high, lookback) + (atr * multiplier)
+longStopDistance  = close - longStop
+shortStopDistance = shortStop - close
+longTarget  = close + (longStopDistance * rr)
+shortTarget = close - (shortStopDistance * rr)
+
+// Save stops & targets
+var t_stop = 0.0
+var t_target = 0.0
+
+// Enter buy orders
+if buySignal
+    t_stop := longStop
+    t_target := longTarget
+    positionSize = math.floor((strategy.equity * (riskPerTrade/100)) / (close - t_stop))
+    strategy.entry(id="Long", direction=strategy.long, qty=positionSize)
+
+// Enter sell orders
+if sellSignal
+    t_stop := shortStop
+    t_target := shortTarget
+    positionSize = math.floor((strategy.equity * (riskPerTrade/100)) / (t_stop - close))
+    strategy.entry(id="Short", direction=strategy.short, qty=positionSize)
+
+// Manage exit orders (TP & SL)
+strategy.exit(id="Long Exit", from_entry="Long", limit=t_target, stop=t_stop, when=strategy.position_size > 0)
+strategy.exit(id="Short Exit", from_entry="Short", limit=t_target, stop=t_stop, when=strategy.position_size < 0)
+
+// Draw data to chart
+plotshape(buySignal, style=shape.triangleup, color=color.green, location=location.belowbar)
+plotshape(sellSignal, style=shape.triangledown, color=color.red, location=location.abovebar)
+plot(strategy.position_size != 0 ? t_stop : na, color=color.red, style=plot.style_linebr)
+plot(strategy.position_size != 0 ? t_target : na, color=color.green, style=plot.style_linebr)
