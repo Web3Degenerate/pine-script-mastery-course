@@ -1,0 +1,43 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+// @version=5
+strategy("www.DegenerateChain.com", overlay=true, 
+     initial_capital=100000, 
+     default_qty_type=strategy.percent_of_equity, 
+     default_qty_value=100)
+
+// Get user inputs
+i_ChannelHigh       = input.int(15, "Channel Lookback")
+i_EMA1              = input.int(90, "Filter EMA Length")
+i_EMA2              = input.int(10, "Exit EMA Length")
+i_VolumeIncrease    = input.float(1.25, "Volume Increase %")
+i_Liquidity         = input.int(1000000, "Liquidity Avg 100-Day")
+i_Turnover          = input.int(500000, "Turnover Filter")
+
+// Get indicator values
+EMA_Volume      = ta.ema(volume, 100)
+EMA_Filter      = ta.ema(close, i_EMA1)
+EMA_Exit        = ta.ema(close, i_EMA2)
+ChannelHigh     = ta.highest(high, i_ChannelHigh)
+AvgTurnover     = ta.ema(volume * close, 100)
+
+// Check entry conditions
+LC_1 = close > ChannelHigh[1]
+LC_2 = close > EMA_Filter
+LC_3 = close > open
+LC_4 = volume > volume[1] * (1 + (i_VolumeIncrease / 100))
+LC_5 = EMA_Volume > i_Liquidity and AvgTurnover > i_Turnover
+LongEntry = LC_1 and LC_2 and LC_3 and LC_4 and LC_5
+
+// Enter long trade
+if (LongEntry)
+    strategy.entry("Long", strategy.long)
+
+// Exit long trade
+if (close < EMA_Exit)
+    strategy.close("Long")
+
+// Draw info
+plot(ChannelHigh[1], "Channel High", color.red, 2)
+plot(EMA_Filter, "EMA Filter", color.blue, 2)
+plot(strategy.position_size != 0 ? EMA_Exit : na, "Stop Loss", color.red, 1, plot.style_linebr)
