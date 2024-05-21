@@ -1,0 +1,121 @@
+// How to plot your stops and targets
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+// @version=5
+// SINGLE TRADE VERSION
+strategy("Stops & Targets", overlay=true)
+
+// Import library
+import ZenAndTheArtOfTrading/ZenLibrary/3 as zen
+
+// Get user input
+atrMulti   = input.float(title="ATR SL Multiplier", defval=1.0)
+riskReward = input.float(title="Risk:Reward", defval=1.0)
+
+// Detect pattern(s)
+hammer = zen.isHammer()
+star   = zen.isStar()
+
+// Check filters
+ema = ta.ema(close, 50)
+atr = ta.atr(14)
+readyToTrade = not na(ema) and not na(atr)
+var int inTrade = 0
+
+// Combine patterns & filters
+validLong  = readyToTrade and hammer and close > ema and inTrade == 0
+validShort = readyToTrade and star and close < ema and inTrade == 0
+
+// Calculate long stops & targets
+longStop = low - (atr * atrMulti) // Stop loss price
+longStopDistance = close - longStop // Stop distance in pips
+longTarget = close + (longStopDistance * riskReward) // Target price
+
+// Calculate short stops & targets
+shortStop = high + (atr * atrMulti) // Stop loss price
+shortStopDistance = shortStop - close // Stop distance in pips
+shortTarget = close - (shortStopDistance * riskReward) // Target price
+
+// Save stops & targets
+var float t_stop = na
+var float t_target = na
+if (validLong or validShort) and inTrade == 0
+    t_stop := validLong ? longStop : shortStop
+    t_target := validLong ? longTarget : shortTarget
+    inTrade := validLong ? 1 : -1
+
+// Check if long stop or target is hit
+if inTrade == 1
+    if high >= t_target or low <= t_stop
+        inTrade := 0
+
+// Check if short stop or target is hit
+if inTrade == -1
+    if high >= t_stop or low <= t_target
+        inTrade := 0
+
+// Draw signals & data
+plot(ema, title="EMA")
+plotshape(validLong, style=shape.triangleup, color=color.green, location=location.belowbar, text="Long", title="Long")
+plotshape(validShort, style=shape.triangledown, color=color.red, location=location.abovebar, text="Short", title="Short")
+
+// Draw stops & targets
+plot(inTrade != 0 ? t_stop : na, style=plot.style_linebr, color=color.red, title="Trade Stop")
+plot(inTrade != 0 ? t_target : na, style=plot.style_linebr, color=color.green, title="Trade Target")
+
+
+Code To Display All Trade Signals:
+
+Copy Code
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © ZenAndTheArtOfTrading / www.PineScriptMastery.com
+// @version=5
+// ALL SIGNALS
+indicator("Stops & Targets", overlay=true)
+
+// Import library
+import ZenAndTheArtOfTrading/ZenLibrary/3 as zen
+
+// Get user input
+atrMulti   = input.float(title="ATR SL Multiplier", defval=1.0)
+riskReward = input.float(title="Risk:Reward", defval=1.0)
+
+// Detect pattern(s)
+hammer = zen.isHammer()
+star   = zen.isStar()
+
+// Check filters
+ema = ta.ema(close, 50)
+atr = ta.atr(14)
+readyToTrade = not na(ema) and not na(atr)
+
+// Combine patterns & filters
+validLong  = readyToTrade and hammer and close > ema
+validShort = readyToTrade and star and close < ema
+
+// Calculate long stops & targets
+longStop = low - (atr * atrMulti) // Stop loss price
+longStopDistance = close - longStop // Stop distance in pips
+longTarget = close + (longStopDistance * riskReward) // Target price
+
+// Calculate short stops & targets
+shortStop = high + (atr * atrMulti) // Stop loss price
+shortStopDistance = shortStop - close // Stop distance in pips
+shortTarget = close - (shortStopDistance * riskReward) // Target price
+
+// Save stops & targets
+var float t_stop = na
+var float t_target = na
+if validLong or validShort
+    t_stop := validLong ? longStop : shortStop
+    t_target := validLong ? longTarget : shortTarget
+
+// Draw signals & data
+plot(ema, title="EMA")
+plotshape(validLong, style=shape.triangleup, color=color.green, location=location.belowbar, text="Long", title="Long")
+plotshape(validShort, style=shape.triangledown, color=color.red, location=location.abovebar, text="Short", title="Short")
+
+// Draw stops & targets
+plot(validLong or validShort ? t_stop : na, style=plot.style_linebr, color=color.red, title="Trade Stop")
+plot(validLong or validShort ? t_target : na, style=plot.style_linebr, color=color.green, title="Trade Target")
