@@ -125,4 +125,17 @@ plot(displayFullCloud ? close : na, offset=-displacement + 1, color=#43A047, tit
 
 1. convert int to float.
 2. format open, high, low and close and inter into price param
-3.
+3. x
+
+```php
+// ==================================================================================================//
+```
+
+### git reset HEAD
+
+_When you have local changes you don't care about that are preventing you from git pulling down the most recent copy, you can force to ignore local changes and pull down the newest remote version._
+
+**To remove local uncommitted changes (even if staged) run these commands:** [From this Stackoverflow Article](https://stackoverflow.com/questions/1125968/how-do-i-force-git-pull-to-overwrite-local-files)
+
+-   `git reset --hard HEAD`
+-   `git pull`

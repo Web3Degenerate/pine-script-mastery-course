@@ -1,0 +1,85 @@
+// Bullish RSI Divergene - generally price moves opposite direction
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © ZenAndTheArtOfTrading / www.PineScriptMastery.com
+// @version=5
+indicator("Pine-Script.com: RSI Divergence", overlay=true)
+
+// Get user input
+int i_MaxDistance       = input.int(title="Max Bar Distance", defval=50)
+int i_RSI_Length        = input.int(title="RSI Length", defval=14, minval=1)
+float i_RSI_Overbought  = input.float(title="RSI Overbought", defval=70.0)
+float i_RSI_Oversold    = input.float(title="RSI Oversold", defval=30.0)
+
+// Get RSI value
+rsiValue = ta.rsi(close, i_RSI_Length)
+
+// --------- BULLISH DIVERGENCE --------- //
+var float checkFirstLow     = na
+var float initialLowPrice   = na
+var float initialLowRSI     = na
+var int initialLowIndex     = na
+bool bullishDivergence      = false
+float swingLowRSI           = ta.lowest(rsiValue, 5)
+
+// Save lowest low while RSI is oversold, and store it when market leaves OS condition
+if (rsiValue < i_RSI_Oversold or rsiValue[1] < i_RSI_Oversold)
+    if not na(initialLowPrice)
+        initialLowPrice := na
+    if na(checkFirstLow) or low < checkFirstLow
+        checkFirstLow := low
+        initialLowIndex := bar_index
+        initialLowRSI := swingLowRSI
+else
+    // RSI is no longer OS, save lowest price during OS condition and reset temporary low
+    if not na(checkFirstLow)
+        initialLowPrice := checkFirstLow
+    checkFirstLow := na
+
+// Check for a second low that is lower than the first, and with a higher RSI value, and within our max distance
+if low[1] < initialLowPrice and low > low[1] and swingLowRSI > initialLowRSI and bar_index - initialLowIndex <= i_MaxDistance
+    bullishDivergence := true
+    line.new(initialLowIndex, initialLowPrice, bar_index - 1, low[1], color=color.green, width=2)
+    initialLowPrice := na
+
+// Draw bearish divergence signal
+plotshape(bullishDivergence, "Bullish Divergence", shape.triangleup, location.belowbar, color.green)
+
+// --------- BEARISH DIVERGENCE --------- //
+var float checkFirstHigh    = na
+var float initialHighPrice  = na
+var float initialHighRSI    = na
+var int initialHighIndex    = na
+bool bearishDivergence      = false
+float swingHighRSI          = ta.highest(rsiValue, 5)
+
+// Save highest high while RSI is overbought, and store it when market leaves OB condition
+if (rsiValue > i_RSI_Overbought or rsiValue[1] > i_RSI_Overbought)
+    if not na(initialHighPrice)
+        initialHighPrice := na
+    if na(checkFirstHigh) or high > checkFirstHigh
+        checkFirstHigh := high
+        initialHighIndex := bar_index
+        initialHighRSI := swingHighRSI
+else
+    // RSI is no longer OB, save highest price during OB condition and reset temporary high
+    if not na(checkFirstHigh)
+        initialHighPrice := checkFirstHigh
+    checkFirstHigh := na
+
+// Check for a second high that is higher than the first, and with a lower RSI value, and within our max distance
+if high[1] > initialHighPrice and high < high[1] and swingHighRSI < initialHighRSI and bar_index - initialHighIndex <= i_MaxDistance
+    bearishDivergence := true
+    line.new(initialHighIndex, initialHighPrice, bar_index - 1, high[1], color=color.red, width=2)
+    initialHighPrice := na
+
+// Draw bearish divergence signal
+plotshape(bearishDivergence, "Bearish Divergence", shape.triangledown, location.abovebar, color.red)
+
+// --------- ALERTS --------- //
+if bearishDivergence
+    alert("Bearish RSI Divergence Detected - RSI Difference:" + str.tostring(initialHighRSI - swingHighRSI, "#.##"), alert.freq_once_per_bar_close)
+if bullishDivergence
+    alert("Bullish RSI Divergence Detected - RSI Difference:" + str.tostring(swingLowRSI - initialLowRSI, "#.##"), alert.freq_once_per_bar_close)
+alertcondition(bearishDivergence, "RSI Bearish Divergence", "RSI Bearish Divergence Detected")
+alertcondition(bullishDivergence, "RSI Bullish Divergence", "RSI Bullish Divergence Detected")

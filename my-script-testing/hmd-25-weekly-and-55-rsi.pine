@@ -1,0 +1,34 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © DegenerateChain
+
+//@version=5
+indicator("HMD 25 Week EMA and 55% RSI Indicator ===D", overlay=true, shorttitle ="HMD Bass =====D")
+
+// Define the length for the EMA
+emaSupportLength = input.int(title="EMA Length", defval=25)
+// Define the length for the RSI
+rsiLength = input.int(title="RSI Length", defval=14)
+// Define the upper and lower bounds of the range for the RSI
+upperRsiBound = input.int(title="Upper RSI Level", defval=56)
+lowerRsiBound = input.int(title="Lower RSI Level", defval=54)
+
+
+// Calculate the EMA
+emaCheck = ta.ema(close, emaSupportLength)
+
+// Check if the current bar is above the EMA
+isAboveEMA = close > emaCheck
+
+
+
+// Calculate the RSI
+rsi = ta.rsi(close, rsiLength)
+
+// Check if the RSI is within the specified range
+isRsiInRange = rsi >= lowerRsiBound and rsi <= upperRsiBound
+
+// Set the buy signal based on Bass' two conditions metioned on the 2/12/2024 call: 
+buySignal = isAboveEMA and isRsiInRange
+
+// Identify buySignal with green vertical line drawn on the chart when two conditions met: 
+bgcolor(buySignal ? color.green : na)
