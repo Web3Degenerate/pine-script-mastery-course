@@ -1,0 +1,41 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © ZenAndTheArtOfTrading / PineScriptMastery.com
+// Last Updated: 9th June, 2023
+// @version=5
+indicator("Day Trading Range", overlay=true)
+
+// Get input
+res     = input.timeframe(title="Timeframe", defval="D")
+atrLen  = input.int(title="ATR Length", defval=5)
+atrMult = input.float(title="ATR Multiplier", defval=0.5)
+
+// Create non-repainting security function
+rp_security(_symbol, _res, _src) => request.security(_symbol, _res, _src[barstate.isrealtime ? 1 : 0])[barstate.isrealtime ? 0 : 1]
+
+// Get HTF price data
+htfHigh = rp_security(syminfo.tickerid, res, high)
+htfLow = rp_security(syminfo.tickerid, res, low)
+htfATR = rp_security(syminfo.tickerid, res, ta.atr(atrLen)) * atrMult
+
+// Open price and line variables
+var line openPriceLine = na
+var line upperAtrLine = na
+var line lowerAtrLine = na
+var line yesterdayHiLine = na
+var line yesterdayLoLine = na
+var line newDayLine = na
+
+// Detect new day
+if (ta.change(time(res)) > 0)
+    line.delete(openPriceLine[1])
+    line.delete(upperAtrLine[1])
+    line.delete(lowerAtrLine[1])
+    line.delete(yesterdayHiLine[1])
+    line.delete(yesterdayLoLine[1])
+    line.delete(newDayLine[1])
+    newDayLine := line.new(bar_index, 99999999, bar_index, 0, xloc.bar_index, extend.none, color.white, line.style_solid, 2)
+    openPriceLine := line.new(bar_index, open, bar_index + 1, open, xloc.bar_index, extend.right, color.white, line.style_solid)
+    upperAtrLine := line.new(bar_index, open + htfATR, bar_index + 1, open + htfATR, xloc=xloc.bar_index, extend=extend.right, color=color.aqua, style=line.style_solid)
+    lowerAtrLine := line.new(bar_index, open - htfATR, bar_index + 1, open - htfATR, xloc=xloc.bar_index, extend=extend.right, color=color.aqua, style=line.style_solid)
+    yesterdayHiLine := line.new(bar_index, htfHigh, bar_index + 1, htfHigh, xloc=xloc.bar_index, extend=extend.right, color=color.red, style=line.style_solid)
+    yesterdayLoLine := line.new(bar_index, htfLow, bar_index + 1, htfLow, xloc=xloc.bar_index, extend=extend.right, color=color.blue, style=line.style_solid)
