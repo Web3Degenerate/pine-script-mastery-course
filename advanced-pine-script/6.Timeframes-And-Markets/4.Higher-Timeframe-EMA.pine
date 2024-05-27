@@ -1,0 +1,23 @@
+// This lesson demonstrates how to create a higher-timeframe EMA script that draws a key Daily chart moving average over our intraday price action.
+
+// Update 20th June 2023: I changed the security function call to reflect the latest 'best practice' for non-repainting code as mentioned in the TradingView documentation: https://www.tradingview.com/pine-script-docs/en/v5/concepts/Repainting.html#repainting-request-security-calls
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+// @version=5
+indicator(title="HTF EMA", overlay=true)
+
+// Get user input
+res     = input.string(title="EMA Timeframe", defval="D")
+len     = input.int(title="EMA Length", defval=50)
+col     = input.bool(title="Color EMA", defval=true)
+smooth  = input.bool(title="Smooth", defval=false)
+
+// Calculate EMA
+ema = ta.ema(close, len)
+emaStep = request.security(syminfo.tickerid, res, ema[barstate.isrealtime ? 1 : 0])[barstate.isrealtime ? 0 : 1]
+emaSmooth = request.security(syminfo.tickerid, res, ema[barstate.isrealtime ? 1 : 0], gaps=barmerge.gaps_on)[barstate.isrealtime ? 0 : 1]
+
+// Draw EMA
+plot(smooth ? emaSmooth : emaStep, color=col ? (close > emaStep ? color.green : color.red) : color.blue, linewidth=2, title="HTF EMA")
+
