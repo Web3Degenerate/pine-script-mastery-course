@@ -1,0 +1,69 @@
+// This lesson shows how to create a breakout indicator which will alert you whenever price action breaks above/below a previous day's high/low, and will also draw your stops & targets onto the chart.
+
+// Note: you can change the "Timeframe" setting to anything - it doesn't only need to be Daily breakouts!
+
+// Update 20th June 2023: I changed the security function call to reflect the latest 'best practice' for non-repainting code as mentioned in the TradingView Docs: https://www.tradingview.com/pine-script-docs/en/v5/concepts/Repainting.html#repainting-request-security-calls
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+// @version=5
+indicator(title="Breakout Indicator", overlay=true)
+
+// Get user input
+res = input.timeframe(title="Timeframe", defval="D")
+rr = input.float(title="Risk:Reward", defval=1.0)
+stopMultiplier = input.float(title="Stop Multiplier", defval=1.0)
+lookback = input.int(title="Stop Lookback", defval=1)
+
+// Get highs and lows
+dailyHigh = request.security(syminfo.tickerid, res, high[barstate.isrealtime ? 1 : 0])[barstate.isrealtime ? 0 : 1]
+dailyLow  = request.security(syminfo.tickerid, res, low[barstate.isrealtime ? 1 : 0])[barstate.isrealtime ? 0 : 1]
+
+// Detect unique breakout for today
+var bullishBreakoutToday = false
+var bearishBreakoutToday = false
+newDay = ta.change(time("D"))
+if newDay
+    bullishBreakoutToday := false
+    bearishBreakoutToday := false
+
+// Check for breakouts
+bullishBO = close > dailyHigh and close[1] <= dailyHigh and not bullishBreakoutToday
+bearishBO = close < dailyLow and close[1] >= dailyLow and not bearishBreakoutToday
+
+// If bullish breakout detected today, disable any future signals for today
+if bullishBO
+    bullishBreakoutToday := true
+
+// If bearish breakout detected today, disable any future signals for today
+if bearishBO
+    bearishBreakoutToday := true
+    
+// Get ATR
+atr = ta.atr(14)
+
+// Get stops & targets
+longStop  = ta.lowest(low, lookback) - (atr * stopMultiplier)
+shortStop = ta.highest(high, lookback) + (atr * stopMultiplier)
+longStopDist  = close - longStop
+shortStopDist = shortStop - close
+longTarget  = close + (longStopDist * rr)
+shortTarget = close - (shortStopDist * rr)
+
+// Draw highs and lows to the chart
+plot(dailyHigh, color=color.red, linewidth=2)
+plot(dailyLow, color=color.green, linewidth=2)
+
+// Draw signals
+plotshape(bearishBO, title="Bearish Breakout", style=shape.triangledown, location=location.abovebar, color=color.red)
+plotshape(bullishBO, title="Bullish Breakout", style=shape.triangleup, location=location.belowbar, color=color.green)
+
+// Draw stops & targets
+plot(bearishBO ? shortStop : na, color=color.red, style=plot.style_linebr)
+plot(bearishBO ? shortTarget : na, color=color.green, style=plot.style_linebr)
+plot(bullishBO ? longStop : na, color=color.red, style=plot.style_linebr)
+plot(bullishBO ? longTarget : na, color=color.green, style=plot.style_linebr)
+
+// Trigger alerts
+alertcondition(bullishBO, title="Bullish Breakout!", message="Long breakout detected for {{ticker}}")
+alertcondition(bearishBO, title="Bearish Breakout!", message="Short breakout detected for {{ticker}}")
