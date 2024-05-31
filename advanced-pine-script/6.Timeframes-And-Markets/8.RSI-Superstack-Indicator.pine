@@ -1,0 +1,46 @@
+//@version=5
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+indicator(title="RSI Superstack")
+
+// Get user input
+rsiLength = input(title="RSI Length", defval=14)
+rsiOB = input.float(title="RSI Overbought", defval=70)
+rsiOS = input.float(title="RSI Oversold", defval=30)
+timeframe1 = input.timeframe(title="Timeframe #1", defval="15")
+timeframe2 = input.timeframe(title="Timeframe #2", defval="60")
+timeframe3 = input.timeframe(title="Timeframe #3", defval="240")
+
+// Declare custom security function
+f_sec(_market, _res, _exp) => request.security(_market, _res, _exp[barstate.isrealtime ? 1 : 0])[barstate.isrealtime ? 0 : 1]
+
+// Get RSI on all timeframes
+rsi_timeframe1 = f_sec(syminfo.tickerid, timeframe1, ta.rsi(close, rsiLength))
+rsi_timeframe2 = f_sec(syminfo.tickerid, timeframe2, ta.rsi(close, rsiLength))
+rsi_timeframe3 = f_sec(syminfo.tickerid, timeframe3, ta.rsi(close, rsiLength))
+
+// Check OB levels
+rsi_ob1 = rsi_timeframe1 >= rsiOB
+rsi_ob2 = rsi_timeframe2 >= rsiOB
+rsi_ob3 = rsi_timeframe3 >= rsiOB
+
+// Check OS levels
+rsi_os1 = rsi_timeframe1 <= rsiOS
+rsi_os2 = rsi_timeframe2 <= rsiOS
+rsi_os3 = rsi_timeframe3 <= rsiOS
+
+// Plot RSIs
+plot(rsi_timeframe1, color=rsi_ob1 or rsi_os1 ? color.purple : color.green, title="RSI Timeframe #1")
+plot(rsi_timeframe2, color=rsi_ob2 or rsi_os2 ? color.purple : color.red, title="RSI Timeframe #2")
+plot(rsi_timeframe3, color=rsi_ob3 or rsi_os3 ? color.purple : color.orange, title="RSI Timeframe #3")
+hline(rsiOB, color=color.gray, title="RSI Overbought")
+hline(rsiOS, color=color.gray, title="RSI Oversold")
+hline(50, color=color.new(color.gray,50), title="RSI Midpoint")
+
+// Change color based on superstack condition
+obTrigger = rsi_ob1 and rsi_ob2 and rsi_ob3
+osTrigger = rsi_os1 and rsi_os2 and rsi_os3
+bgcolor(obTrigger ? color.red : osTrigger ? color.green : na, title="RSI Trigger")
+
+// Trigger alert
+alertcondition(obTrigger or osTrigger, title="RSI Superstack Alert", message="{{ticker}} has 3 RSI values at extreme levels!")
