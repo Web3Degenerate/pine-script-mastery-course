@@ -1,0 +1,29 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+// how to create your own custom user-defined functions.
+
+// Note: User-defined functions can use any of the Pine built-ins, except: barcolor(), fill(), hline(), indicator(), library(), plot(), plotbar(), plotcandle(), plotchar(), plotshape() and strategy().
+
+// @version=5
+indicator("Custom Functions")
+
+// 1 line custom function
+addition(x, y) => x + y
+plot(addition(23, 33))
+
+// Multi-line function
+multiplier = 2
+multi(x, y) =>
+    value = x * y
+    value * multiplier
+plot(multi(3, 6), color=color.red)
+
+// Multi-result function
+multiResult(x, y) =>
+    a = x + y
+    b = x - y
+    [a, b]
+
+[r1, r2] = multiResult(1, 1)
+plot(r1, color=color.blue)
+plot(r2, color=color.red)
