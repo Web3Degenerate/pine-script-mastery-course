@@ -1,0 +1,95 @@
+// Strategy trades from Steven Hart (youtube) around an investopedia article
+// Uses hammer and star candle
+// expands on some of the things we've learned so far by creating a profitable hammer & shooting star strategy!
+// Investopedia Video: https://www.youtube.com/watch?v=R7cXkvztdKY
+
+// More for forex markets
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+// Last Updated: 2nd February 2022
+// @version=5
+strategy("Pinbar Strategy", shorttitle="PBS", overlay=true)
+
+// Import Zen library
+import ZenAndTheArtOfTrading/ZenLibrary/3 as zen
+
+// Strategy Settings
+var g_strategy      = "Strategy Settings"
+stopMultiplier      = input.float(title="Stop Loss ATR", defval=1.0, group=g_strategy, tooltip="Stop loss multiplier (x ATR)")
+rr                  = input.float(title="R:R", defval=1.0, group=g_strategy, tooltip="Risk:Reward profile")
+fibLevel            = input.float(title="Fib Level", defval=0.333, group=g_strategy, tooltip="Used to calculate upper/lower third of candle. (For example, setting it to 0.5 will mean hammers must close >= 50% mark of the total candle size)")
+// Filter Settings
+var g_filter        = "Filter Settings"
+atrMinFilterSize    = input.float(title=">= ATR Filter", defval=0.0, minval=0.0, group=g_filter, tooltip="Minimum size of entry candle compared to ATR")
+atrMaxFilterSize    = input.float(title="<= ATR Filter", defval=3.0, minval=0.0, group=g_filter, tooltip="Maximum size of entry candle compared to ATR")
+emaFilter           = input.int(title="EMA Filter", defval=0, group=g_filter, tooltip="EMA length to filter trades - set to zero to disable")
+i_startTime         = input.time(title="Start Date Filter", defval=timestamp("01 Jan 2000 13:30 +0000"), group=g_filter, tooltip="Date & time to begin trading from")
+i_endTime           = input.time(title="End Date Filter", defval=timestamp("1 Jan 2099 19:30 +0000"), group=g_filter, tooltip="Date & time to stop trading")
+
+// See if this bar's time happened within date filter
+dateFilter = time >= i_startTime and time <= i_endTime
+
+// Get indicator values
+atr = ta.atr(14)
+ema = ta.ema(close, emaFilter == 0 ? 1 : emaFilter)
+
+// Check EMA Filter
+emaFilterLong = emaFilter == 0 or close > ema
+emaFilterShort = emaFilter == 0 or close < ema
+
+// Check ATR filter
+atrMinFilter = high - low >= (atrMinFilterSize * atr) or atrMinFilterSize == 0.0
+atrMaxFilter = high - low <= (atrMaxFilterSize * atr) or atrMaxFilterSize == 0.0
+atrFilter = atrMinFilter and atrMaxFilter and not na(atr)
+
+// Determine if we have a valid setup
+validHammer = zen.isHammer(fibLevel) and atrFilter and emaFilterLong and dateFilter and close != open
+validStar   = zen.isStar(fibLevel) and atrFilter and emaFilterShort and dateFilter and close != open
+
+// Check if we have confirmation of our setup
+validLong = validHammer and strategy.position_size == 0 and barstate.isconfirmed
+validShort = validStar and strategy.position_size == 0 and barstate.isconfirmed
+
+// Calculate our stops & targets for the current bar
+stopSize = atr * stopMultiplier
+longStopPrice = low < low[1] ? low - stopSize : low[1] - stopSize
+longStopDistance = close - longStopPrice
+longTargetPrice = close + (longStopDistance * rr)
+shortStopPrice = high > high[1] ? high + stopSize : high[1] + stopSize
+shortStopDistance = shortStopPrice - close
+shortTargetPrice = close - (shortStopDistance * rr)
+
+// Save trade stop & target if a valid setup is detected
+var t_entry = 0.0
+var t_stop = 0.0
+var t_target = 0.0
+
+// Detect valid long setups & trigger alert
+if validLong
+    t_entry := close
+    t_stop := longStopPrice
+    t_target := longTargetPrice
+    strategy.entry(id="Long", direction=strategy.long, comment="(SL=" + str.tostring(zen.truncate(zen.toWhole(longStopDistance))) + " pips)")
+
+// Detect valid short setups & trigger alert
+if validShort
+    t_entry := close
+    t_stop := shortStopPrice
+    t_target := shortTargetPrice
+    strategy.entry(id="Short", direction=strategy.short, comment="(SL=" + str.tostring(zen.truncate(zen.toWhole(shortStopDistance))) + " pips)")
+
+// Exit trades whenever our stop or target is hit
+strategy.exit(id="Long Exit", from_entry="Long", limit=t_target, stop=t_stop, when=strategy.position_size > 0)
+strategy.exit(id="Short Exit", from_entry="Short", limit=t_target, stop=t_stop, when=strategy.position_size < 0)
+
+// Draw trade data
+plot(strategy.position_size != 0 or validLong or validShort ? t_stop : na, title="Trade Stop Price", color=color.red, style=plot.style_linebr)
+plot(strategy.position_size != 0 or validLong or validShort ? t_target : na, title="Trade Target Price", color=color.green, style=plot.style_linebr)
+
+// Draw EMA if it's enabled
+plot(emaFilter == 0 ? na : ema, color=emaFilterLong ? color.green : color.red, linewidth=2, title="EMA")
+
+// Draw price action setup arrows
+plotshape(validLong ? 1 : na, style=shape.triangleup, location=location.belowbar, color=color.green, title="Bullish Setup")
+plotshape(validShort ? 1 : na, style=shape.triangledown, location=location.abovebar, color=color.red, title="Bearish Setup")
