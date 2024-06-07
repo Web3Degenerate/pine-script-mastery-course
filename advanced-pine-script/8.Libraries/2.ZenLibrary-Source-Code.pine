@@ -1,0 +1,312 @@
+// Updated Feb 14, 2024
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+// Last Updated: 14th February, 2024
+// @version=5
+// @description A collection of custom tools & utility functions commonly used with my scripts
+library("ZenLibrary")
+
+// --- BEGIN UTILITY FUNCTIONS {
+// @function Calculates how many decimals are on the quote price of the current market
+// @returns The current decimal places on the market quote price
+export getDecimals() => math.abs(math.log(syminfo.mintick) / math.log(10))
+
+// @function Calculates the pip size of the current market
+// @param int multiplier The mintick point multiplier (1 by default, 10 for FX/Crypto/CFD but can be used to override when certain markets require)
+// @returns The pip size for the current market
+export getPipSize(int multiplier = 1) => syminfo.mintick * ((multiplier == 1 and (syminfo.type == "forex" or syminfo.type == "crypto" or syminfo.type == "cfd")) ? 10 : multiplier)
+
+// @function Truncates (cuts) excess decimal places
+// @param float number The number to truncate
+// @param float decimalPlaces (default=2) The number of decimal places to truncate to
+// @returns The given number truncated to the given decimalPlaces
+export truncate(float number, simple float decimalPlaces = 2.0) =>
+    factor = math.pow(10, decimalPlaces)
+    int(number * factor) / factor
+
+// @function Converts pips into whole numbers
+// @param float number The pip number to convert into a whole number
+// @returns The converted number
+export toWhole(float number) =>
+    _return = number / getPipSize() / syminfo.pointvalue
+
+// @function Converts whole numbers back into pips
+// @param float number The whole number to convert into pips
+// @returns The converted number
+export toPips(float number) =>
+    number * syminfo.mintick * (syminfo.type == "forex" or syminfo.type == "crypto" ? 10 : 1)
+
+// @function Gets the percentage change between 2 float values over a given lookback period
+// @param float value1 The first value to reference
+// @param float value2 The second value to reference
+// @param int lookback The lookback period to analyze
+export getPctChange(float value1, float value2, int lookback) =>
+    vChange = value1 - value2
+    vDiff   = vChange - vChange[lookback]
+    (vDiff / vChange) * 100
+
+// @function Calculates OANDA forex position size for AutoView based on the given parameters
+// @param float balance The account balance to use
+// @param float risk The risk percentage amount (as a whole number - eg. 1 = 1% risk)
+// @param float stopPoints The stop loss distance in POINTS (not pips)
+// @param float conversionRate The conversion rate of our account balance currency
+// @returns The calculated position size (in units - only compatible with OANDA)
+export av_getPositionSize(float balance, float risk, float stopPoints, float conversionRate) =>
+    riskAmount = balance * (risk / 100) * conversionRate
+    riskPerPoint = stopPoints * syminfo.pointvalue
+    positionSize = riskAmount / riskPerPoint / syminfo.mintick
+    math.round(positionSize)
+
+// } END UTILITY FUNCTIONS
+// --- BEGIN TA FUNCTIONS {
+
+// @function Calculates a bullish fibonacci value
+// @param priceLow The lowest price point
+// @param priceHigh The highest price point
+// @param fibRatio The fibonacci % ratio to calculate
+// @returns The fibonacci value of the given ratio between the two price points
+export bullFib(float priceLow, float priceHigh, float fibRatio = 0.382) => (priceLow - priceHigh) * fibRatio + priceHigh
+
+// @function Calculates a bearish fibonacci value
+// @param priceLow The lowest price point
+// @param priceHigh The highest price point
+// @param fibRatio The fibonacci % ratio to calculate
+// @returns The fibonacci value of the given ratio between the two price points
+export bearFib(float priceLow, float priceHigh, float fibRatio = 0.382) => (priceHigh - priceLow) * fibRatio + priceLow
+
+// @function Gets a Moving Average based on type (! MUST BE CALLED ON EVERY TICK TO BE ACCURATE, don't place in scopes)
+// @param int length The MA period
+// @param string maType The type of MA
+// @returns A moving average with the given parameters
+export getMA(simple int length, string maType) =>
+    switch maType
+        "EMA" => ta.ema(close, length)
+        "SMA" => ta.sma(close, length)
+        "HMA" => ta.hma(close, length)
+        "WMA" => ta.wma(close, length)
+        "VWMA" => ta.vwma(close, length)
+        "VWAP" => ta.vwap
+        => 
+            e1 = ta.ema(close, length)
+            e2 = ta.ema(e1, length)
+            2 * e1 - e2
+
+// @function Performs EAP stop loss size calculation (eg. ATR >= 20.0 and ATR < 30, returns 20)
+// @param float atr The given ATR to base the EAP SL calculation on
+// @returns The EAP SL converted ATR size
+export getEAP(float atr) =>
+    atrWhole = toWhole(atr) // First convert ATR to whole number for consistency across markets
+    eapStopWhole = atrWhole // Then if ATR is above 1 full integer, leave it alone as it's already a whole number
+    // If ATR is between 20 and 30 pips, set stop distance to 20 pips
+    if atrWhole >= 20.0 and atrWhole < 30.0
+        eapStopWhole := 20.0
+    // If ATR is between 30 and 50 pips, set stop distance to 30 pips
+    if atrWhole >= 30.0 and atrWhole < 50.0
+    // If ATR is between 50 and 100 pips, set stop distance to 50 pips
+        eapStopWhole := 30.0
+    if atrWhole >= 50.0 and atrWhole < 100.0
+        eapStopWhole := 50.0
+    // If ATR is above 100 pips, set stop distance to 100 pips
+    if atrWhole >= 100.0
+        eapStopWhole := 100.0
+    // Convert EAP SL from whole number back into pips
+    toPips(eapStopWhole)
+
+// @function Performs secondary EAP stop loss size calculation (eg. ATR < 40, add 5 pips, ATR between 40-50, add 10 pips etc)
+// @param float atr The given ATR to base the EAP SL calculation on
+// @returns The EAP SL converted ATR size
+export getEAP2(float atr) =>
+    atrWhole = toWhole(atr) // First convert ATR to whole number for consistency across markets
+    eapStopWhole = atrWhole
+    // If ATR is below 40, add 5 pips
+    if atrWhole < 40.0
+        eapStopWhole := eapStopWhole + 5.0
+    // If ATR is between 40-50, add 10 pips
+    if atrWhole >= 40.0 and atrWhole <= 50.0
+        eapStopWhole := eapStopWhole + 10.0
+    // If ATR is between 50-200, add 20 pips
+    if atrWhole > 50.0 and atrWhole <= 200.0
+        eapStopWhole := eapStopWhole + 20.0
+    // Convert EAP SL from whole number back into pips
+    toPips(eapStopWhole)
+
+// @function Counts how many candles are above the MA
+// @param int lookback The lookback period to look back over
+// @param float ma The moving average to check
+// @returns The bar count of how many recent bars are above the MA
+export barsAboveMA(int lookback, float ma) =>
+    counter = 0
+    for i = 1 to lookback by 1
+        if close[i] > ma[i]
+            counter := counter + 1
+    counter
+
+// @function Counts how many candles are below the MA
+// @param int lookback The lookback period to look back over
+// @param float ma The moving average to reference
+// @returns The bar count of how many recent bars are below the EMA
+export barsBelowMA(int lookback, float ma) =>
+    counter = 0
+    for i = 1 to lookback by 1
+        if close[i] < ma[i]
+            counter := counter + 1
+    counter
+
+// @function Counts how many times the EMA was crossed recently
+// @param int lookback The lookback period to look back over
+// @param float ma The moving average to reference
+// @returns The bar count of how many times price recently crossed the EMA
+export barsCrossedMA(int lookback, float ma) =>
+    counter = 0
+    for i = 1 to lookback by 1
+        if open[i] > ma[i] and close[i] < ma[i] or open[i] < ma[i] and close[i] > ma[i]
+            counter := counter + 1
+    counter
+
+// @function Counts how many green & red bars have printed recently (ie. pullback count)
+// @param int lookback The lookback period to look back over
+// @param int direction The color of the bar to count (1 = Green, -1 = Red)
+// @returns The bar count of how many candles have retraced over the given lookback & direction
+export getPullbackBarCount(int lookback, int direction) =>
+    recentCandles = 0
+    for i = 1 to lookback by 1
+        if direction == 1 and close[i] > open[i]  // Count green bars
+            recentCandles := recentCandles + 1
+        if direction == -1 and close[i] < open[i]  // Count red bars
+            recentCandles := recentCandles + 1
+    recentCandles
+
+// @function Gets the current candle's body size (in POINTS, divide by 10 to get pips)
+// @returns The current candle's body size in POINTS
+export getBodySize() => math.abs(close - open) / syminfo.mintick
+
+// @function Gets the current candle's top wick size (in POINTS, divide by 10 to get pips)
+// @returns The current candle's top wick size in POINTS
+export getTopWickSize() => math.abs(high - (close > open ? close : open)) / syminfo.mintick
+
+// @function Gets the current candle's bottom wick size (in POINTS, divide by 10 to get pips)
+// @returns The current candle's bottom wick size in POINTS
+export getBottomWickSize() => math.abs((close < open ? close : open) - low) / syminfo.mintick
+
+// @function Gets the current candle's body size as a percentage of its entire size including its wicks
+// @returns The current candle's body size percentage
+export getBodyPercent() => math.abs(open - close) / math.abs(high - low)
+
+// } END TA FUNCTIONS
+// --- BEGIN CANDLE SETUP DETECTION {
+
+// @function Checks if the current bar is a hammer candle based on the given parameters
+// @param float fib (default=0.382) The fib to base candle body on
+// @param bool colorMatch (default=false) Does the candle need to be green? (true/false)
+// @returns A boolean - true if the current bar matches the requirements of a hammer candle
+export isHammer(float fib = 0.382, bool colorMatch = false) =>
+    bullFib = bullFib(low, high, fib)
+    lowestBody = close < open ? close : open
+    lowestBody >= bullFib and (not colorMatch or close > open)
+
+// @function Checks if the current bar is a shooting star candle based on the given parameters
+// @param float fib (default=0.382) The fib to base candle body on
+// @param bool colorMatch (default=false) Does the candle need to be red? (true/false)
+// @returns A boolean - true if the current bar matches the requirements of a shooting star candle
+export isStar(float fib = 0.382, bool colorMatch = false) =>
+    bearFib = bearFib(low, high, fib)
+    highestBody = close > open ? close : open
+    highestBody <= bearFib and (not colorMatch or close < open)
+    
+// @function Checks if the current bar is a doji candle based on the given parameters
+// @param float wickSize (default=2) The maximum top wick size compared to the bottom (and vice versa)
+// @param bool bodySize (default=0.05) The maximum body size as a percentage compared to the entire candle size
+// @returns A boolean - true if the current bar matches the requirements of a doji candle
+export isDoji(float wickSize = 2.0, float bodySize = 0.05) =>
+    getTopWickSize() <= getBottomWickSize() * wickSize and getBottomWickSize() <= getTopWickSize() * wickSize and getBodyPercent() <= bodySize
+
+// @function Checks if the current bar is a bullish engulfing candle
+// @param float allowance (default=0) How many POINTS to allow the open to be off by (useful for markets with micro gaps)
+// @param float rejectionWickSize (default=disabled) The maximum rejection wick size compared to the body as a percentage
+// @param bool engulfWick (default=false) Does the engulfing candle require the wick to be engulfed as well?
+// @returns A boolean - true if the current bar matches the requirements of a bullish engulfing candle
+export isBullishEC(float allowance = 0.0, float rejectionWickSize = 0.0, bool engulfWick = false) =>
+  (close[1] <= open[1] and close >= open[1] and open <= close[1] + allowance) and (not engulfWick or close >= high[1]) and 
+  (rejectionWickSize == 0.0 or getTopWickSize() / getBodySize() < rejectionWickSize)
+
+// @function Checks if the current bar is a bearish engulfing candle
+// @param float allowance (default=0) How many POINTS to allow the open to be off by (useful for markets with micro gaps)
+// @param float rejectionWickSize (default=disabled) The maximum rejection wick size compared to the body as a percentage
+// @param bool engulfWick (default=false) Does the engulfing candle require the wick to be engulfed as well?
+// @returns A boolean - true if the current bar matches the requirements of a bearish engulfing candle
+export isBearishEC(float allowance = 0.0, float rejectionWickSize = 0.0, bool engulfWick = false) =>
+  (close[1] >= open[1] and close <= open[1] and open >= close[1] - allowance) and (not engulfWick or close <= low[1]) and
+  (rejectionWickSize == 0.0 or getBottomWickSize() / getBodySize() < rejectionWickSize)
+
+// @function Detects inside bars
+// @returns Returns true if the current bar is an inside bar
+export isInsideBar() => high < high[1] and low > low[1]
+
+// @function Detects outside bars
+// @returns Returns true if the current bar is an outside bar
+export isOutsideBar() => high > high[1] and low < low[1]
+
+// } END CANDLE SETUP DETECTION
+// --- BEGIN FILTER FUNCTIONS {
+
+// @function Determines if the current price bar falls inside the specified session
+// @param string sess The session to check
+// @param bool useFilter (default=true) Whether or not to actually use this filter
+// @returns A boolean - true if the current bar falls within the given time session
+export barInSession(simple string sess, bool useFilter = true) => na(time(timeframe.period, sess + ":1234567")) == false or not useFilter
+
+// @function Determines if the current price bar falls outside the specified session
+// @param string sess The session to check
+// @param bool useFilter (default=true) Whether or not to actually use this filter
+// @returns A boolean - true if the current bar falls outside the given time session
+export barOutSession(simple string sess, bool useFilter = true) => na(time(timeframe.period, sess + ":1234567")) or not useFilter
+
+// @function Determines if this bar's time falls within date filter range
+// @param int startTime The UNIX date timestamp to begin searching from
+// @param int endTime the UNIX date timestamp to stop searching from
+// @returns A boolean - true if the current bar falls within the given dates
+export dateFilter(int startTime, int endTime) => time >= startTime and time <= endTime
+
+// @function Checks if the current bar's day is in the list of given days to analyze
+// @param bool monday Should the script analyze this day? (true/false)
+// @param bool tuesday Should the script analyze this day? (true/false)
+// @param bool wednesday Should the script analyze this day? (true/false)
+// @param bool thursday Should the script analyze this day? (true/false)
+// @param bool friday Should the script analyze this day? (true/false)
+// @param bool saturday Should the script analyze this day? (true/false)
+// @param bool sunday Should the script analyze this day? (true/false)
+// @returns A boolean - true if the current bar's day is one of the given days
+export dayFilter(bool monday, bool tuesday, bool wednesday, bool thursday, bool friday, bool saturday, bool sunday) => 
+  dayofweek == dayofweek.monday and monday or
+  dayofweek == dayofweek.tuesday and tuesday or
+  dayofweek == dayofweek.wednesday and wednesday or
+  dayofweek == dayofweek.thursday and thursday or
+  dayofweek == dayofweek.friday and friday or
+  dayofweek == dayofweek.saturday and saturday or
+  dayofweek == dayofweek.sunday and sunday
+
+// @function Checks the current bar's size against the given ATR and max size
+// @param float atrValue (default=ATR 14 period) The given ATR to check
+// @param float maxSize The maximum ATR multiplier of the current candle
+// @returns A boolean - true if the current bar's size is less than or equal to atr x maxSize
+_atr = ta.atr(14)
+export atrFilter(float atrValue = 1111, float maxSize) => maxSize == 0.0 or math.abs(high - low) <= (atrValue == 1111 ? _atr : atrValue) * maxSize
+
+// } END FILTER FUNCTIONS
+// --- BEGIN DISPLAY FUNCTIONS {
+
+// @function This updates the given table's cell with the given values
+// @param table tableID The table ID to update
+// @param int column The column to update
+// @param int row The row to update
+// @param string title The title of this cell
+// @param string value The value of this cell
+// @param color bgcolor The background color of this cell
+// @param color txtcolor The text color of this cell
+// @returns A boolean - true if the current bar falls within the given dates
+export fillCell(table tableID, int column, int row, string title, string value, color bgcolor, color txtcolor) =>
+    cellText = title + "\n" + value
+    table.cell(tableID, column, row, cellText, bgcolor=bgcolor, text_color=txtcolor)
+
+// } END DISPLAY FUNCTIONS
