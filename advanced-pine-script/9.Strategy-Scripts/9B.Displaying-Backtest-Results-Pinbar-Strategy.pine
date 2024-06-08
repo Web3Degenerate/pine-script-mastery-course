@@ -1,0 +1,150 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+// Last Updated: 2nd February 2022
+// @version=5
+strategy("Pinbar Strategy", shorttitle="PBS", overlay=true)
+
+// Import Zen library
+import ZenAndTheArtOfTrading/ZenLibrary/3 as zen
+
+// Strategy Settings
+var g_strategy      = "Strategy Settings"
+stopMultiplier      = input.float(title="Stop Loss ATR", defval=1.0, group=g_strategy, tooltip="Stop loss multiplier (x ATR)")
+rr                  = input.float(title="R:R", defval=1.0, group=g_strategy, tooltip="Risk:Reward profile")
+fibLevel            = input.float(title="Fib Level", defval=0.333, group=g_strategy, tooltip="Used to calculate upper/lower third of candle. (For example, setting it to 0.5 will mean hammers must close >= 50% mark of the total candle size)")
+// Filter Settings
+var g_filter        = "Filter Settings"
+atrMinFilterSize    = input.float(title=">= ATR Filter", defval=0.0, minval=0.0, group=g_filter, tooltip="Minimum size of entry candle compared to ATR")
+atrMaxFilterSize    = input.float(title="<= ATR Filter", defval=3.0, minval=0.0, group=g_filter, tooltip="Maximum size of entry candle compared to ATR")
+emaFilter           = input.int(title="EMA Filter", defval=0, group=g_filter, tooltip="EMA length to filter trades - set to zero to disable")
+i_startTime         = input.time(title="Start Date Filter", defval=timestamp("01 Jan 2000 13:30 +0000"), group=g_filter, tooltip="Date & time to begin trading from")
+i_endTime           = input.time(title="End Date Filter", defval=timestamp("1 Jan 2099 19:30 +0000"), group=g_filter, tooltip="Date & time to stop trading")
+// Backtester Settings
+var g_tester        = "Backtester Settings"
+startBalance        = input.float(title="Starting Balance", defval=10000.0, group=g_tester, tooltip="Your starting balance for the inbuilt tester system")
+riskPerTrade        = input.float(title="Risk Per Trade", defval=1.0, group=g_tester, tooltip="Your desired % risk per trade (as a whole number)")
+drawTester          = input.bool(title="Draw Backtester", defval=true, group=g_tester, tooltip="Turn on/off inbuilt backtester display")
+
+// See if this bar's time happened within date filter
+dateFilter = time >= i_startTime and time <= i_endTime
+
+// Get indicator values
+atr = ta.atr(14)
+ema = ta.ema(close, emaFilter == 0 ? 1 : emaFilter)
+
+// Check EMA Filter
+emaFilterLong = emaFilter == 0 or close > ema
+emaFilterShort = emaFilter == 0 or close < ema
+
+// Check ATR filter
+atrMinFilter = high - low >= (atrMinFilterSize * atr) or atrMinFilterSize == 0.0
+atrMaxFilter = high - low <= (atrMaxFilterSize * atr) or atrMaxFilterSize == 0.0
+atrFilter = atrMinFilter and atrMaxFilter and not na(atr)
+
+// Determine if we have a valid setup
+validHammer = zen.isHammer(fibLevel) and atrFilter and emaFilterLong and dateFilter and close != open
+validStar   = zen.isStar(fibLevel) and atrFilter and emaFilterShort and dateFilter and close != open
+
+// Check if we have confirmation of our setup
+validLong = validHammer and strategy.position_size == 0 and barstate.isconfirmed
+validShort = validStar and strategy.position_size == 0 and barstate.isconfirmed
+
+// Calculate our stops & targets for the current bar
+stopSize = atr * stopMultiplier
+longStopPrice = low < low[1] ? low - stopSize : low[1] - stopSize
+longStopDistance = close - longStopPrice
+longTargetPrice = close + (longStopDistance * rr)
+shortStopPrice = high > high[1] ? high + stopSize : high[1] + stopSize
+shortStopDistance = shortStopPrice - close
+shortTargetPrice = close - (shortStopDistance * rr)
+
+// Save trade stop & target if a valid setup is detected
+var t_entry = 0.0
+var t_stop = 0.0
+var t_target = 0.0
+var label lastTradeLabel = na
+var stringFormat = syminfo.currency == "JPY" ? "0.000" : "0.00000"
+
+// Detect valid long setups & trigger alert
+if validLong
+    t_entry := close
+    t_stop := longStopPrice
+    t_target := longTargetPrice
+    positionSize = math.floor((strategy.equity * (riskPerTrade/100)) / math.abs(close - t_stop))
+    lastTradeLabel := label.new(bar_index, t_target + (atr/2), text="EP = " + str.tostring(t_entry, stringFormat) + "\nTP = " + str.tostring(t_target, stringFormat) + "\nSL = " + str.tostring(t_stop, stringFormat), color=color.green, size=size.large)
+    label.delete(lastTradeLabel[1])
+    strategy.entry(id="Long", direction=strategy.long, qty=positionSize, comment="(SL=" + str.tostring(zen.truncate(zen.toWhole(longStopDistance))) + " pips)")
+
+// Detect valid short setups & trigger alert
+if validShort
+    t_entry := close
+    t_stop := shortStopPrice
+    t_target := shortTargetPrice
+    positionSize = math.floor((strategy.equity * (riskPerTrade/100)) / math.abs(close - t_stop))
+    lastTradeLabel := label.new(bar_index, t_stop + (atr/2), text="EP = " + str.tostring(t_entry, stringFormat) + "\nTP = " + str.tostring(t_target, stringFormat) + "\nSL = " + str.tostring(t_stop, stringFormat), color=color.red, size=size.large)
+    label.delete(lastTradeLabel[1])
+    strategy.entry(id="Short", direction=strategy.short, qty=positionSize, comment="(SL=" + str.tostring(zen.truncate(zen.toWhole(shortStopDistance))) + " pips)")
+
+// Exit trades whenever our stop or target is hit
+strategy.exit(id="Long Exit", from_entry="Long", limit=t_target, stop=t_stop, when=strategy.position_size > 0)
+strategy.exit(id="Short Exit", from_entry="Short", limit=t_target, stop=t_stop, when=strategy.position_size < 0)
+
+// Draw trade data
+plot(strategy.position_size != 0 or validLong or validShort ? t_stop : na, title="Trade Stop Price", color=color.red, style=plot.style_linebr)
+plot(strategy.position_size != 0 or validLong or validShort ? t_target : na, title="Trade Target Price", color=color.green, style=plot.style_linebr)
+
+// Draw EMA if it's enabled
+plot(emaFilter == 0 ? na : ema, color=emaFilterLong ? color.green : color.red, linewidth=2, title="EMA")
+
+// Draw price action setup arrows
+plotshape(validLong ? 1 : na, style=shape.triangleup, location=location.belowbar, color=color.green, title="Bullish Setup")
+plotshape(validShort ? 1 : na, style=shape.triangledown, location=location.abovebar, color=color.red, title="Bearish Setup")
+
+// =============================================================================
+// START BACKTEST CODE
+// =============================================================================
+// Declare balance tracking variables (for backtester simulation)
+var balance = startBalance
+var drawdown = 0.0
+var maxDrawdown = 0.0
+var maxBalance = 0.0
+var totalPips = 0.0
+
+// Increase profit for wins
+if strategy.wintrades != strategy.wintrades[1]
+    balance += riskPerTrade / 100 * balance * rr
+    totalPips += zen.toWhole(math.abs(t_entry - t_target))
+    if balance > maxBalance
+        maxBalance := balance
+
+// Decrease profit for losses
+if strategy.losstrades != strategy.losstrades[1]
+    balance -= riskPerTrade / 100 * balance
+    totalPips -= zen.toWhole(math.abs(t_stop - t_entry))
+    // Update drawdown
+    drawdown := balance / maxBalance - 1
+    if drawdown < maxDrawdown
+        maxDrawdown := drawdown
+
+// Prepare stats table
+var table testTable = table.new(position.top_right, 5, 2, border_width=1)
+f_fillCell(_table, _column, _row, _title, _value, _bgcolor, _txtcolor) =>
+    _cellText = _title + "\n" + _value
+    table.cell(_table, _column, _row, _cellText, bgcolor=_bgcolor, text_color=_txtcolor)
+
+// Draw stats table
+var bgcolor = color.black
+if barstate.islastconfirmedhistory
+    if drawTester
+        dollarReturn = balance - startBalance
+        f_fillCell(testTable, 0, 0, "Total Trades:", str.tostring(strategy.closedtrades), bgcolor, color.white)
+        f_fillCell(testTable, 0, 1, "Win Rate:", str.tostring(zen.truncate(strategy.wintrades / strategy.closedtrades * 100)) + "%", bgcolor, color.white)
+        f_fillCell(testTable, 1, 0, "Starting:", "$" + str.tostring(startBalance), bgcolor, color.white)
+        f_fillCell(testTable, 1, 1, "Ending:", "$" + str.tostring(zen.truncate(balance)), bgcolor, color.white)
+        f_fillCell(testTable, 2, 0, "Return:", "$" + str.tostring(zen.truncate(dollarReturn)), bgcolor, dollarReturn > 0 ? color.green : color.red)
+        f_fillCell(testTable, 2, 1, "Pips:", (totalPips > 0 ? "+" : "") + str.tostring(zen.truncate(totalPips)), bgcolor, color.white)
+        f_fillCell(testTable, 3, 0, "Return:", (dollarReturn > 0 ? "+" : "") + str.tostring(zen.truncate(dollarReturn / startBalance * 100)) + "%", dollarReturn > 0 ? color.green : color.red, color.white)
+        f_fillCell(testTable, 3, 1, "Max DD:", str.tostring(zen.truncate(maxDrawdown * 100)) + "%", color.red, color.white)
+// =============================================================================
+// END BACKTEST CODE
+// =============================================================================

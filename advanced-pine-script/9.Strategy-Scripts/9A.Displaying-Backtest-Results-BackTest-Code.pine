@@ -1,0 +1,59 @@
+// builds on 7.Calculating-Position-Size.pine and 8.Pinebar-Strategy-Example.pine and demonstrates how we can build an inbuilt backtester displaying the strategy scripts using tables.
+
+// =============================================================================
+// START BACKTEST CODE - 
+// =============================================================================
+// Import Zen library
+import ZenAndTheArtOfTrading/ZenLibrary/3 as zen
+
+// Backtester Settings
+var g_tester        = "Backtester Settings"
+startBalance        = input.float(title="Starting Balance", defval=10000.0, group=g_tester, tooltip="Your starting balance for the inbuilt tester system")
+riskPerTrade        = input.float(title="Risk Per Trade", defval=1.0, group=g_tester, tooltip="Your desired % risk per trade (as a whole number)")
+drawTester          = input.bool(title="Draw Backtester", defval=true, group=g_tester, tooltip="Turn on/off inbuilt backtester display")
+
+// Declare balance tracking variables (for backtester simulation)
+var balance = startBalance
+var drawdown = 0.0
+var maxDrawdown = 0.0
+var maxBalance = 0.0
+var totalPips = 0.0
+
+// Increase profit for wins
+if strategy.wintrades != strategy.wintrades[1]
+    balance += riskPerTrade / 100 * balance * rr
+    totalPips += zen.toWhole(math.abs(t_entry - t_target))
+    if balance > maxBalance
+        maxBalance := balance
+
+// Decrease profit for losses
+if strategy.losstrades != strategy.losstrades[1]
+    balance -= riskPerTrade / 100 * balance
+    totalPips -= zen.toWhole(math.abs(t_stop - t_entry))
+    // Update drawdown
+    drawdown := balance / maxBalance - 1
+    if drawdown < maxDrawdown
+        maxDrawdown := drawdown
+
+// Prepare stats table
+var table testTable = table.new(position.top_right, 5, 2, border_width=1)
+f_fillCell(_table, _column, _row, _title, _value, _bgcolor, _txtcolor) =>
+    _cellText = _title + "\n" + _value
+    table.cell(_table, _column, _row, _cellText, bgcolor=_bgcolor, text_color=_txtcolor)
+
+// Draw stats table
+var bgcolor = color.black
+if barstate.islastconfirmedhistory
+    if drawTester
+        dollarReturn = balance - startBalance
+        f_fillCell(testTable, 0, 0, "Total Trades:", str.tostring(strategy.closedtrades), bgcolor, color.white)
+        f_fillCell(testTable, 0, 1, "Win Rate:", str.tostring(zen.truncate(strategy.wintrades / strategy.closedtrades * 100)) + "%", bgcolor, color.white)
+        f_fillCell(testTable, 1, 0, "Starting:", "$" + str.tostring(startBalance), bgcolor, color.white)
+        f_fillCell(testTable, 1, 1, "Ending:", "$" + str.tostring(zen.truncate(balance)), bgcolor, color.white)
+        f_fillCell(testTable, 2, 0, "Return:", "$" + str.tostring(zen.truncate(dollarReturn)), bgcolor, dollarReturn > 0 ? color.green : color.red)
+        f_fillCell(testTable, 2, 1, "Pips:", (totalPips > 0 ? "+" : "") + str.tostring(zen.truncate(totalPips)), bgcolor, color.white)
+        f_fillCell(testTable, 3, 0, "Return:", (dollarReturn > 0 ? "+" : "") + str.tostring(zen.truncate(dollarReturn / startBalance * 100)) + "%", dollarReturn > 0 ? color.green : color.red, color.white)
+        f_fillCell(testTable, 3, 1, "Max DD:", str.tostring(zen.truncate(maxDrawdown * 100)) + "%", color.red, color.white)
+// =============================================================================
+// END BACKTEST CODE
+// =============================================================================
