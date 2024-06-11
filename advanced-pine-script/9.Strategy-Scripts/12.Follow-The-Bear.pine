@@ -1,0 +1,119 @@
+// This script is based on a strategy called "Follow The Bear" as taught by Jason Graystone from Tier One Trading (see youtube channel: https://www.youtube.com/c/JasonGraystone )
+
+// robust trading strategy (look up)
+
+// I also explain how to implement "simple" position size calculation code for those of you who are not forex traders. 
+
+// These methods are not perfect, but they are better than using a fixed position size which is the default TradingView Strategy Tester technique. In a future lesson on backtesting I'll also show you a third method for simulating risk as a percentage of your account balance.
+
+
+// Simple Position Size Source Code (Stocks):
+positionSize = math.floor((strategy.equity * (riskPerTrade/100)) / (close - t_stop))
+strategy.entry(id="Long", direction=strategy.long, qty=positionSize)
+
+// (For Forex)
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © ZenAndTheArtOfTrading / www.PineScriptMastery.com
+// @version=5
+strategy(title="Breakout Strategy", overlay=true, currency="USD")
+
+// Import ZenLibrary
+import ZenAndTheArtOfTrading/ZenLibrary/3 as zen
+
+// Get user input
+res             = input.timeframe(title="Timeframe", defval="D")
+rr              = input.float(title="Risk:Reward", defval=1.0)
+stopMultiplier  = input.float(title="Stop Multiplier", defval=1.0)
+lookback        = input.int(title="Stop Lookback", defval=1)
+riskPerTrade    = input.float(title="Risk Per Trade %", defval=1.0)
+
+// Get highs and lows
+dailyHigh = request.security(syminfo.tickerid, res, high[barstate.isrealtime ? 1 : 0])
+dailyLow  = request.security(syminfo.tickerid, res, low[barstate.isrealtime ? 1 : 0])
+
+// Detect unique breakout for today
+var bullishBreakoutToday = false
+var bearishBreakoutToday = false
+newDay = ta.change(time("D"))
+if newDay
+    bullishBreakoutToday := false
+    bearishBreakoutToday := false
+
+// Get ATR
+atr = ta.atr(14)
+
+// Check for breakouts
+bullishBO = close > dailyHigh and close[1] <= dailyHigh and not bullishBreakoutToday and not na(atr) and strategy.position_size == 0
+bearishBO = close < dailyLow and close[1] >= dailyLow and not bearishBreakoutToday and not na(atr) and strategy.position_size == 0
+
+// Get stops & targets
+longStop  = ta.lowest(low, lookback) - (atr * stopMultiplier)
+shortStop = ta.highest(high, lookback) + (atr * stopMultiplier)
+longStopDist  = close - longStop
+shortStopDist = shortStop - close
+longTarget  = close + (longStopDist * rr)
+shortTarget = close - (shortStopDist * rr)
+
+//------------- DETERMINE CURRENCY CONVERSION RATE -------------//
+// Check if our account currency is the same as the base or quote currency or neither (for risk $ conversion purposes)
+accountSameAsCounterCurrency = strategy.account_currency == syminfo.currency
+accountSameAsBaseCurrency = strategy.account_currency == syminfo.basecurrency
+accountNeitherCurrency = not accountSameAsCounterCurrency and not accountSameAsBaseCurrency
+// Get currency conversion rates if applicable
+conversionCurrencyPair = accountSameAsCounterCurrency ? syminfo.tickerid : strategy.account_currency + syminfo.currency
+conversionCurrencyRate = accountSameAsBaseCurrency or accountNeitherCurrency ? request.security(conversionCurrencyPair, "D", close, ignore_invalid_symbol=true) : 1.0
+// Display the current conversion currency ticker (for debug purposes)
+if barstate.islastconfirmedhistory
+    table t = table.new(position.top_right, 1, 1, color.black)
+    table.cell(t, 0, 0, "Conversion: " + conversionCurrencyPair + " (" + str.tostring(conversionCurrencyRate) + ")", text_color=color.white, text_size=size.small)
+//------------- END CURRENCY CONVERSION RATE CODE -------------//
+
+// Save stop & target
+var float t_stop = na
+var float t_target = na
+
+// If bullish breakout detected today, disable any future signals for today
+if bullishBO
+    bullishBreakoutToday := true
+    t_stop := longStop
+    t_target := longTarget
+    positionSize = zen.av_getPositionSize(strategy.equity, riskPerTrade, zen.toWhole(longStopDist) * 10, conversionCurrencyRate)
+    stopLabelText = str.tostring(longStopDist / syminfo.mintick / 10, "#.#")
+    strategy.entry(id="Long", direction=strategy.long, qty=positionSize, comment="Long (SL=" + stopLabelText + " pips)")
+
+// If bearish breakout detected today, disable any future signals for today
+if bearishBO
+    bearishBreakoutToday := true
+    t_stop := shortStop
+    t_target := shortTarget
+    positionSize = zen.av_getPositionSize(strategy.equity, riskPerTrade, zen.toWhole(shortStopDist) * 10, conversionCurrencyRate)
+    stopLabelText = str.tostring(shortStopDist / syminfo.mintick / 10, "#.#")
+    strategy.entry(id="Short", direction=strategy.short, qty=positionSize, comment="Short (SL=" + stopLabelText + " pips)")
+
+// Check long stops & targets being hit
+strategy.exit(id="Long Exit",
+     from_entry="Long",
+     limit=t_target,
+     stop=t_stop,
+     when=strategy.position_size > 0,
+     comment="Long Exit (Equity: " + str.tostring(strategy.equity, "###,###,###") + ")")
+
+// Check short stops & targets being hit
+strategy.exit(id="Short Exit",
+     from_entry="Short",
+     limit=t_target,
+     stop=t_stop,
+     when=strategy.position_size < 0,
+     comment="Short Exit (Equity: " + str.tostring(strategy.equity, "###,###,###") + ")")
+
+// Draw highs and lows to the chart
+plot(dailyHigh, color=color.red, linewidth=2)
+plot(dailyLow, color=color.green, linewidth=2)
+
+// Draw signals
+plotshape(bearishBO, title="Bearish Breakout", style=shape.triangledown, location=location.abovebar, color=color.red)
+plotshape(bullishBO, title="Bullish Breakout", style=shape.triangleup, location=location.belowbar, color=color.green)
+
+// Draw stops & targets
+plot(strategy.position_size != 0 ? t_stop : na, color=color.red, style=plot.style_linebr, title="Trade Stop")
+plot(strategy.position_size != 0 ? t_target : na, color=color.green, style=plot.style_linebr, title="Trade Target")
