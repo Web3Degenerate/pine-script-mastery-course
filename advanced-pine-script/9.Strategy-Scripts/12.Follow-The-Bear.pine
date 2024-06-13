@@ -6,114 +6,173 @@
 
 // These methods are not perfect, but they are better than using a fixed position size which is the default TradingView Strategy Tester technique. In a future lesson on backtesting I'll also show you a third method for simulating risk as a percentage of your account balance.
 
+// It takes advantage of a recurring pattern on EURUSD during the European market open. It is a short-only strategy and aims to take advantage of trapped buyers who bought EURUSD during the market open and then found themselves caught on the wrong side of a correction as volatility begins to pick up throughout the European/U.S. trading sessions.
 
-// Simple Position Size Source Code (Stocks):
-positionSize = math.floor((strategy.equity * (riskPerTrade/100)) / (close - t_stop))
-strategy.entry(id="Long", direction=strategy.long, qty=positionSize)
+// Note: This is a curve-fitted strategy, which means "the process of constructing a curve, or mathematical function, that has the best fit to a series of data points". In other words, it is a heavily optimized strategy that is not robust and is not likely to stand the test of time and will probably lose its edge over the coming years or even months.
 
-// (For Forex)
+// So full disclaimer: treat this strategy purely as an example, and while it has been profitable for quite a few years and I've traded it profitably for the past 12 months, it should be regarded as a high-risk strategy in terms of its edge decaying over time.
+
+// Truly robust strategies will work across multiple markets and timeframes - this strategy is the opposite of that. But hey, if it works and it makes money, I'm not one to ignore that for so long as it continues to generate a profit! Just don't risk any money with this strategy (or any strategy for that matter) that you cannot afford to lose if you do decide to trade it.
+
+
+
+
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © ZenAndTheArtOfTrading / www.PineScriptMastery.com
+// Last Updated: 24th February 2022
 // @version=5
-strategy(title="Breakout Strategy", overlay=true, currency="USD")
+strategy("FTB Strategy", shorttitle="FTB", overlay=true, calc_on_order_fills=true, initial_capital=10000)
 
-// Import ZenLibrary
-import ZenAndTheArtOfTrading/ZenLibrary/3 as zen
+// Risk Settings
+var g_risk      = "Risk Settings"
+pips            = input.float(title="Stop Pips", defval=2.0, group=g_risk, tooltip="How many pips above high to put stop loss")
+rr              = input.float(title="Risk:Reward", defval=1.0, group=g_risk, tooltip="This determines the risk:reward profile of the setup")
+// Filters
+var g_filter    = "Filter Settings"
+timezone        = input.session(title="Timezone", defval="0200-0700", group=g_filter, tooltip="Which timezone to search for FTB signals in")
+useRsiFilter    = input.bool(title="RSI OB/OS?", defval=true, group=g_filter, tooltip="If true then the RSI must be considered overbought before a signal is valid")
+useCloseFilter  = input.bool(title="Previous Bar Must Be Bullish?", defval=false, group=g_filter, tooltip="If true then the previous bar must have closed bullish")
+useHighFilter   = input.bool(title="High Filter", defval=false, group=g_filter, tooltip="If true then the signal bar must be the highest bar over X bars")
+highLookback    = input.int(title="High Lookback", defval=10, group=g_filter, tooltip="This is for setting the High Filter lookback distance")
+fib             = input.float(title="Candle Close %", defval=0.5, group=g_filter, tooltip="For identifying shooting star candles (0.5 = must close <= 50% mark of candle size)")
+rsiLen          = input.int(title="RSI Length", defval=3, group=g_filter, tooltip="RSI length")
+rsiOB           = input.float(title="RSI OB", defval=70.0, group=g_filter, tooltip="RSI overbought threshold")
+var g_days      = "Day Filter"
+d_monday        = input.bool(title="Monday", defval=true, group=g_days, tooltip="Take trades on this day?", inline="days")
+d_tuesday       = input.bool(title="Tuesday", defval=true, group=g_days, tooltip="Take trades on this day?", inline="days")
+d_wednesday     = input.bool(title="Wednesday", defval=true, group=g_days, tooltip="Take trades on this day?", inline="days")
+d_thursday      = input.bool(title="Thursday", defval=true, group=g_days, tooltip="Take trades on this day?", inline="days")
+d_friday        = input.bool(title="Friday", defval=true, group=g_days, tooltip="Take trades on this day?", inline="days")
+var g_tester    = "Backtester Settings"
+startBalance    = input.float(title="Starting Balance", defval=10000.0, group=g_tester, tooltip="Your starting balance for the inbuilt tester system")
+riskPerTrade    = input.float(title="Risk Per Trade", defval=1.0, group=g_tester, tooltip="Your desired % risk per trade (as a whole number)")
+drawTester      = input.bool(title="Draw Backtester", defval=true, group=g_tester, tooltip="Turn on/off inbuilt backtester display")
 
-// Get user input
-res             = input.timeframe(title="Timeframe", defval="D")
-rr              = input.float(title="Risk:Reward", defval=1.0)
-stopMultiplier  = input.float(title="Stop Multiplier", defval=1.0)
-lookback        = input.int(title="Stop Lookback", defval=1)
-riskPerTrade    = input.float(title="Risk Per Trade %", defval=1.0)
+// Get RSI filter
+rsiValue = ta.rsi(close, rsiLen)
+rsiFilter = not useRsiFilter or rsiValue >= rsiOB
 
-// Get highs and lows
-dailyHigh = request.security(syminfo.tickerid, res, high[barstate.isrealtime ? 1 : 0])
-dailyLow  = request.security(syminfo.tickerid, res, low[barstate.isrealtime ? 1 : 0])
+// Check high & close filter
+highFilter = not useHighFilter or high == ta.highest(high, highLookback)
+closeFilter = not useCloseFilter or close[1] > open[1]
 
-// Detect unique breakout for today
-var bullishBreakoutToday = false
-var bearishBreakoutToday = false
-newDay = ta.change(time("D"))
-if newDay
-    bullishBreakoutToday := false
-    bearishBreakoutToday := false
+// InSession() determines if a price bar falls inside the specified session (and day)
+days = d_monday ? "2" : ""
+days := days + (d_tuesday ? "3" : "")
+days := days + (d_wednesday ? "4" : "")
+days := days + (d_thursday ? "5" : "")
+days := days + (d_friday ? "6" : "")
+inSession(sess) => na(time(timeframe.period, sess + ":" + days)) == false
 
-// Get ATR
-atr = ta.atr(14)
+// Calculate 50% mark of candle size
+bearFib = (high - low) * fib + low
 
-// Check for breakouts
-bullishBO = close > dailyHigh and close[1] <= dailyHigh and not bullishBreakoutToday and not na(atr) and strategy.position_size == 0
-bearishBO = close < dailyLow and close[1] >= dailyLow and not bearishBreakoutToday and not na(atr) and strategy.position_size == 0
+// Check filters
+filters = inSession(timezone) and closeFilter and high > high[1] and rsiFilter and highFilter and open != close
 
-// Get stops & targets
-longStop  = ta.lowest(low, lookback) - (atr * stopMultiplier)
-shortStop = ta.highest(high, lookback) + (atr * stopMultiplier)
-longStopDist  = close - longStop
-shortStopDist = shortStop - close
-longTarget  = close + (longStopDist * rr)
-shortTarget = close - (shortStopDist * rr)
+// Detect valid shooting star pinbar pattern
+var takenTradeAlready = false
+star = filters and close < bearFib and open < bearFib and not takenTradeAlready and strategy.position_size == 0
 
-//------------- DETERMINE CURRENCY CONVERSION RATE -------------//
-// Check if our account currency is the same as the base or quote currency or neither (for risk $ conversion purposes)
-accountSameAsCounterCurrency = strategy.account_currency == syminfo.currency
-accountSameAsBaseCurrency = strategy.account_currency == syminfo.basecurrency
-accountNeitherCurrency = not accountSameAsCounterCurrency and not accountSameAsBaseCurrency
-// Get currency conversion rates if applicable
-conversionCurrencyPair = accountSameAsCounterCurrency ? syminfo.tickerid : strategy.account_currency + syminfo.currency
-conversionCurrencyRate = accountSameAsBaseCurrency or accountNeitherCurrency ? request.security(conversionCurrencyPair, "D", close, ignore_invalid_symbol=true) : 1.0
-// Display the current conversion currency ticker (for debug purposes)
-if barstate.islastconfirmedhistory
-    table t = table.new(position.top_right, 1, 1, color.black)
-    table.cell(t, 0, 0, "Conversion: " + conversionCurrencyPair + " (" + str.tostring(conversionCurrencyRate) + ")", text_color=color.white, text_size=size.small)
-//------------- END CURRENCY CONVERSION RATE CODE -------------//
+// Calculate stops & targets
+shortStopPrice = high + (syminfo.mintick * pips * 10)
+shortStopDistance = shortStopPrice - close
+shortTargetPrice = close - (shortStopDistance * rr)
 
-// Save stop & target
-var float t_stop = na
-var float t_target = na
+// Save stops & targets for the current trade
+var t_stop = 0.0
+var t_target = 0.0
+var t_entry = 0.0
 
-// If bullish breakout detected today, disable any future signals for today
-if bullishBO
-    bullishBreakoutToday := true
-    t_stop := longStop
-    t_target := longTarget
-    positionSize = zen.av_getPositionSize(strategy.equity, riskPerTrade, zen.toWhole(longStopDist) * 10, conversionCurrencyRate)
-    stopLabelText = str.tostring(longStopDist / syminfo.mintick / 10, "#.#")
-    strategy.entry(id="Long", direction=strategy.long, qty=positionSize, comment="Long (SL=" + stopLabelText + " pips)")
+// If we detect a valid shooting star, save our stops & targets, enter short and generate alert
+if star and barstate.isconfirmed
+    t_stop := shortStopPrice
+    t_target := shortTargetPrice
+    t_entry := close
+    takenTradeAlready := true
+    positionSize = math.floor((strategy.equity * (riskPerTrade/100)) / (t_stop - close))
+    strategy.entry(id="Short", direction=strategy.short, qty=positionSize, when=strategy.position_size == 0)
+    alert("FTB Setup Detected!", alert.freq_once_per_bar_close)
 
-// If bearish breakout detected today, disable any future signals for today
-if bearishBO
-    bearishBreakoutToday := true
-    t_stop := shortStop
-    t_target := shortTarget
-    positionSize = zen.av_getPositionSize(strategy.equity, riskPerTrade, zen.toWhole(shortStopDist) * 10, conversionCurrencyRate)
-    stopLabelText = str.tostring(shortStopDist / syminfo.mintick / 10, "#.#")
-    strategy.entry(id="Short", direction=strategy.short, qty=positionSize, comment="Short (SL=" + stopLabelText + " pips)")
-
-// Check long stops & targets being hit
-strategy.exit(id="Long Exit",
-     from_entry="Long",
-     limit=t_target,
-     stop=t_stop,
-     when=strategy.position_size > 0,
-     comment="Long Exit (Equity: " + str.tostring(strategy.equity, "###,###,###") + ")")
-
-// Check short stops & targets being hit
-strategy.exit(id="Short Exit",
-     from_entry="Short",
-     limit=t_target,
-     stop=t_stop,
-     when=strategy.position_size < 0,
-     comment="Short Exit (Equity: " + str.tostring(strategy.equity, "###,###,###") + ")")
-
-// Draw highs and lows to the chart
-plot(dailyHigh, color=color.red, linewidth=2)
-plot(dailyLow, color=color.green, linewidth=2)
-
-// Draw signals
-plotshape(bearishBO, title="Bearish Breakout", style=shape.triangledown, location=location.abovebar, color=color.red)
-plotshape(bullishBO, title="Bullish Breakout", style=shape.triangleup, location=location.belowbar, color=color.green)
+// If we have exited the FTB session then reset our takenTradeAlready flag for the next session
+if not inSession(timezone) and inSession(timezone)[1]
+    takenTradeAlready := false
 
 // Draw stops & targets
-plot(strategy.position_size != 0 ? t_stop : na, color=color.red, style=plot.style_linebr, title="Trade Stop")
-plot(strategy.position_size != 0 ? t_target : na, color=color.green, style=plot.style_linebr, title="Trade Target")
+plot(star or strategy.position_size != 0 ? t_stop : na, color=color.red, style=plot.style_linebr, title="SL")
+plot(star or strategy.position_size != 0 ? t_target : na, color=color.green, style=plot.style_linebr, title="TP")
+// Draw short signals
+plotshape(star ? 1 : na, style=shape.triangledown, color=color.red)
+// Change background color to highlight detection zone
+bgcolor(color=inSession(timezone) ? color.new(color.red,80) : na, title="Session")
+
+// Exit trade whenever our stop or target is hit
+strategy.exit(id="Short Exit", from_entry="Short", limit=t_target, stop=t_stop, when=strategy.position_size != 0)
+
+// =============================================================================
+// START BACKTEST CODE
+// =============================================================================
+
+// Import Zen library
+import ZenAndTheArtOfTrading/ZenLibrary/3 as zen
+
+// Declare balance tracking variables (for backtester simulation)
+var balance = startBalance
+var drawdown = 0.0
+var maxDrawdown = 0.0
+var maxBalance = 0.0
+var totalPips = 0.0
+
+// Increase profit for wins
+wonTrade = strategy.wintrades != strategy.wintrades[1]
+if wonTrade
+    balance += riskPerTrade / 100 * balance * rr
+    totalPips += zen.toWhole(math.abs(t_entry - t_target))
+    if balance > maxBalance
+        maxBalance := balance
+
+// Decrease profit for losses
+lostTrade = strategy.losstrades != strategy.losstrades[1]
+if lostTrade
+    balance -= riskPerTrade / 100 * balance
+    totalPips -= zen.toWhole(math.abs(t_stop - t_entry))
+    // Update drawdown
+    drawdown := balance / maxBalance - 1
+    if drawdown < maxDrawdown
+        maxDrawdown := drawdown
+
+// Declare error tracking variables (for identifying how many "questionable" trades were detected)
+var questionableTrades = 0
+flagQuestionableTrade = false
+
+// If price has hit both TP & SL on the same bar, flag it for further investigation
+if ((wonTrade or lostTrade) and high >= t_stop and low <= t_target)
+    questionableTrades += 1
+    flagQuestionableTrade := true
+
+// Highlight questionable trades
+bgcolor(flagQuestionableTrade ? color.new(color.purple,50) : na)
+
+// Prepare stats table
+var table testTable = table.new(position.top_right, 5, 2, border_width=1)
+f_fillCell(_table, _column, _row, _title, _value, _bgcolor, _txtcolor) =>
+    _cellText = _title + "\n" + _value
+    table.cell(_table, _column, _row, _cellText, bgcolor=_bgcolor, text_color=_txtcolor)
+
+// Draw stats table
+var bgcolor = color.black
+if barstate.islastconfirmedhistory
+    if drawTester
+        dollarReturn = balance - startBalance
+        f_fillCell(testTable, 0, 0, "Total Trades:", str.tostring(strategy.closedtrades) + " [*" + str.tostring(questionableTrades) + "]", bgcolor, color.white)
+        f_fillCell(testTable, 0, 1, "Win Rate:", str.tostring(zen.truncate(strategy.wintrades / strategy.closedtrades * 100)) + "%", bgcolor, color.white)
+        f_fillCell(testTable, 1, 0, "Starting:", "$" + str.tostring(startBalance), bgcolor, color.white)
+        f_fillCell(testTable, 1, 1, "Ending:", "$" + str.tostring(zen.truncate(balance)), bgcolor, color.white)
+        f_fillCell(testTable, 2, 0, "Return:", "$" + str.tostring(zen.truncate(dollarReturn)), bgcolor, dollarReturn > 0 ? color.green : color.red)
+        f_fillCell(testTable, 2, 1, "Pips:", (totalPips > 0 ? "+" : "") + str.tostring(zen.truncate(totalPips)), bgcolor, color.white)
+        f_fillCell(testTable, 3, 0, "Return:", (dollarReturn > 0 ? "+" : "") + str.tostring(zen.truncate(dollarReturn / startBalance * 100)) + "%", dollarReturn > 0 ? color.green : color.red, color.white)
+        f_fillCell(testTable, 3, 1, "Max DD:", str.tostring(zen.truncate(maxDrawdown * 100)) + "%", color.red, color.white)
+
+// =============================================================================
+// END BACKTEST CODE
+// =============================================================================

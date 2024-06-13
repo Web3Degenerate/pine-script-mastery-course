@@ -1,0 +1,95 @@
+//Demonstrates how to convert the 5.Indicators/15.Bollinger-Bands-Breakouts.pin "Bollinger Band Breakout Indicator" into a strategy script, and explains some of the limitations of the TradingView Strategy Tester when it comes to robust portfolio testing.
+
+//The Strategy Tester is a great tool and can be used to create backtesting scripts extremely quickly and efficiently especially for limited market strategies such as forex and commodities and small stock portfolios, but the price we pay for that convenience is the lack of powerful features that the Strategy Tester has to offer.
+
+//Hopefully in the future the TradingView developers will expand on the tester and make multiple market testing possible. But for now just be aware that if you're developing a strategy to be traded across dozens or hundreds of markets (such as a universe of stocks in the S&P500 for example), testing it properly can be difficult to achieve with Pine.
+
+//For advanced system testing and trading, other languages such as AFL (https://www.amibroker.com/guide/AFL.html) or Python might be more suitable if you want to build complex strategies and/or perform advanced backtesting such as automatic optimizations and Monte Carlo simulations etc. Pine Script is much better suited for creating trading tools to assist in your trading, rather than advanced fully-automated trading systems that trade hundreds or thousands of markets.
+
+//Update 20th June 2023: The security function call changed to reflect the latest 'best practice' for non-repainting code as mentioned in the TradingView documentation. Also removed 'when=' parameters from the strategy functions where they were mentioned as that parameter is now deprecated and unnecessary. (https://www.tradingview.com/pine-script-docs/en/v5/concepts/Repainting.html#repainting-request-security-calls)
+
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+// @version=5
+strategy("Bollinger Bands", overlay=true, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=20)
+
+// Get user input
+var g_bb        = "Bollinger Band Settings"
+upperBandSD     = input.float(title="Upper Band Std Dev", defval=3.0, tooltip="Upper band's standard deviation multiplier", group=g_bb)
+lowerBandSD     = input.float(title="Lower Band Std Dev", defval=1.0, tooltip="Lower band's standard deviation multiplier", group=g_bb)
+maPeriod        = input.int(title="Middle Band MA Length", defval=100, tooltip="Middle band's SMA period length", group=g_bb)
+var g_tester    = "Backtester Settings"
+drawTester      = input.bool(title="Draw Backtester", defval=true, group=g_tester, tooltip="Turn on/off inbuilt backtester display")
+var g_rf        = "Regime Filter Settings"
+useRegime       = input.bool(title="Use Regime Filter", defval=true, group=g_rf)
+res             = input.timeframe(title="Timeframe", defval="D", group=g_rf)
+len             = input.int(title="EMA Length", defval=20, group=g_rf)
+market          = input.symbol(title="Market", defval="BATS:SPY", group=g_rf)
+
+// Define custom security function
+f_sec(_market, _res, _exp) => request.security(_market, _res, _exp[barstate.isrealtime ? 1 : 0])[barstate.isrealtime ? 0 : 1]
+
+// Get EMA value
+ema = ta.ema(close, len)
+emaValue = f_sec(market, res, ema)
+
+// Check if price is above or below EMA filter
+marketPrice = f_sec(market, res, close)
+regimeFilter = not useRegime or marketPrice > emaValue
+
+// Change background color
+plotshape(useRegime, style=shape.square, size=size.normal, location=location.bottom, color=regimeFilter ? color.green : color.red, title="Regime Filter")
+
+// Get Bollinger Bands
+[bbIgnore1, bbHigh, bbIgnore2] = ta.bb(close, maPeriod, upperBandSD)
+[bbMid, bbIgnore3, bbLow]      = ta.bb(close, maPeriod, lowerBandSD)
+
+// Prepare trade persistent variables
+drawEntry   = false
+drawExit    = false
+
+// Detect bollinger breakout
+if close > bbHigh and barstate.isconfirmed and strategy.position_size == 0 and regimeFilter
+    drawEntry := true
+    strategy.entry(id="Trade", direction=strategy.long)
+    alert("Bollinger Breakout Detected for " + syminfo.ticker, alert.freq_once_per_bar_close)
+
+// Detect bollinger sell signal
+if close < bbLow and barstate.isconfirmed and strategy.position_size != 0
+    drawExit := true
+    strategy.close(id="Trade")
+    alert("Bollinger Exit detected for " + syminfo.ticker, alert.freq_once_per_bar_close)
+
+// Draw bollinger bands
+plot(bbMid, color=color.blue, title="Middle SMA")
+plot(bbHigh, color=color.green, title="Upper Band")
+plot(bbLow, color=color.red, title="Lower Band")
+
+// Draw signals
+plotshape(drawEntry, style=shape.triangleup, color=color.green, location=location.belowbar, size=size.normal, title="Buy Signal")
+plotshape(drawExit, style=shape.xcross, color=color.red, location=location.belowbar, size=size.normal, title="Sell Signal")
+
+// =============================================================================
+// START BACKTEST CODE
+// =============================================================================
+
+// Prepare stats table
+var table testTable = table.new(position.top_right, 2, 2, border_width=1)
+f_fillCell(_table, _column, _row, _title, _value, _bgcolor, _txtcolor) =>
+    _cellText = _title + "\n" + _value
+    table.cell(_table, _column, _row, _cellText, bgcolor=_bgcolor, text_color=_txtcolor)
+
+// Draw stats table
+var bgcolor = color.black
+if barstate.islastconfirmedhistory
+    if drawTester
+        dollarReturn = strategy.equity - strategy.initial_capital
+        f_fillCell(testTable, 0, 0, "Total Trades:", str.tostring(strategy.closedtrades), bgcolor, color.white)
+        f_fillCell(testTable, 0, 1, "Win Rate:", str.tostring(strategy.wintrades / strategy.closedtrades * 100, "##.##") + "%", bgcolor, color.white)
+        f_fillCell(testTable, 1, 0, "Equity:", "$" + str.tostring(strategy.equity, "###,###.##"), bgcolor, color.white)
+        f_fillCell(testTable, 1, 1, "Return:", str.tostring((strategy.netprofit / strategy.initial_capital) * 100, "##.##") + "%", dollarReturn > 0 ? color.green : color.red, color.white)
+
+// =============================================================================
+// END BACKTEST CODE
+// =============================================================================
