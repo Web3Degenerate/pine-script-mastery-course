@@ -1,0 +1,66 @@
+// This breaks down a Keltner Band Mean Reversion system I've been working on for an equity trading portfolio.
+
+// It's a Daily timeframe long-only mean-reversion system designed to be traded on the U.S. stock market. The system is not finished yet in terms of my overall optimization and portfolio construction process, but this is a great example of how to build a simple but effective mean-reversion trading strategy in Pine.
+
+// It's inspired by information from Nick Radge, a reputable and highly talented trend-follower who has also designed some very robust mean-reversion strategies.
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © ZenAndTheArtOfTrading / www.PineScriptMastery.com
+// @version=5
+strategy("ATR Reversion System", 
+     overlay=true, 
+     currency=currency.USD,
+     initial_capital=100000, 
+     default_qty_type=strategy.percent_of_equity, 
+     default_qty_value=100, 
+     commission_type=strategy.commission.cash_per_order, 
+     commission_value=9.95)
+
+// Get user input
+i_EmaLongLength     = input.int(title="Long-term EMA", defval=200)
+i_EmaShortLength    = input.int(title="Short-term EMA Length", defval=20)
+i_ATRPeriod         = input.int(title="ATR Period", defval=5)
+i_ATRBand           = input.float(title="ATR Band Distance", defval=1)
+i_ATRStretch        = input.float(title="ATR Buy Stretch", defval=1)
+i_SellBand          = input.string(title="Sell At Band:", defval="Middle", options=["Top", "Middle", "Bottom"])
+i_SellSrc           = input.source(title="Sell Price Source", defval=high)
+
+// Get indicator values
+emaLongTerm     = ta.ema(close, i_EmaLongLength)
+emaShortTerm    = ta.ema(close, i_EmaShortLength)
+atrValue        = ta.atr(i_ATRPeriod)
+
+// Get ATR bands
+atrBandTop = emaShortTerm + (atrValue * i_ATRBand)
+atrBandBot = emaShortTerm - (atrValue * i_ATRBand)
+
+// Define price stretch
+float buyLimitPrice = na
+
+// Check setup conditions = bar close is below ATR band, above long-term EMA
+setupCondition = close < atrBandBot and low > emaLongTerm
+
+// Clear any pending limit orders
+strategy.cancel_all()
+
+// Enter trades on next bar after setup condition is met
+if setupCondition
+    buyLimitPrice := low - (atrValue * i_ATRStretch)
+    strategy.entry("Long", strategy.long, limit=buyLimitPrice)
+
+// Get sell price
+sellPrice = switch i_SellBand
+    "Top"       => atrBandTop
+    "Middle"    => emaShortTerm
+    "Bottom"    => atrBandBot
+
+// Exit trades
+if i_SellSrc >= sellPrice or close < emaLongTerm
+    strategy.close("Long", comment="Exit trade")
+
+// Draw data to chart
+plot(emaLongTerm, "EMA Filter", color.red, 2)
+plot(emaShortTerm, "ATR Band Middle", color.blue)
+plot(atrBandBot, "ATR Band Bottom", color=color.green)
+plot(atrBandTop, "ATR Band Top", color=color.new(color.gray, 75))
+plot(setupCondition ? buyLimitPrice : na, "Buy Limit", color.lime, 1, plot.style_cross)
