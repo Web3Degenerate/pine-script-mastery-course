@@ -1,0 +1,64 @@
+//This demonstrates various methods we can use to code trailing stop losses in Pine Script to lock in profits in strategy scripts - including ATR and Percentage-based variants with several parameters.
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+// @version=5
+strategy("www.PineScriptMastery.com", overlay=true)
+
+// Get user input
+tradeType           = input.string(title="Trade Direction", defval="Long", options=["Long", "Short"], confirm=true)
+trailSource         = input.string(title="Trail Source", defval="Lows/Highs", options=["Lows/Highs", "Close", "Open"], confirm=true)
+trailMethod         = input.string(title="Trail Method", defval="ATR", options=["ATR", "Percent"], confirm=true)
+trailPercent        = input.float(title="Trail Percent", defval=10, minval=0.1, confirm=true)
+swingLookback       = input.int(title="Lookback", defval=7, confirm=true)
+atrPeriod           = input.int(title="ATR Period", defval=14, confirm=true)
+atrMultiplier       = input.float(title="ATR Multiplier", defval=1.0, confirm=true)
+barTime             = input.time(title="Bar Time", defval=timestamp("01 Jan 2021 13:30 +0000"), confirm=true)
+
+// Enter mock trade (if bar is the one we clicked on and we have no open trades or previous trades)
+if time >= barTime and strategy.position_size == 0 and strategy.closedtrades == 0
+    strategy.entry("Trade", direction = (tradeType == "Long" ? strategy.long : strategy.short))
+
+// Declare trailing price variable (stores our trail stop value)
+var float trailPrice    = na
+float next_trailPrice   = na
+
+// Get required trailing stop variables
+atrValue                = ta.atr(atrPeriod) * atrMultiplier
+float swingLow          = ta.lowest(low, swingLookback)
+float swingHigh         = ta.highest(high, swingLookback)
+
+// Get trailing stop price
+if trailMethod == "ATR" // Determine ATR trailing stop price based on price source
+    next_trailPrice := switch trailSource
+        "Close"     => strategy.position_size > 0 ? close - atrValue : close + atrValue
+        "Open"      => strategy.position_size > 0 ? open - atrValue : open + atrValue
+        => strategy.position_size > 0 ? swingLow - atrValue : swingHigh + atrValue
+else if trailMethod == "Percent" // Determine percentage trailing stop price based on price source
+    float percentMulti = strategy.position_size > 0 ? (100 - trailPercent) / 100 : (100 + trailPercent) / 100
+    next_trailPrice := switch trailSource
+        "Close"     => close * percentMulti
+        "Open"      => open * percentMulti
+        => strategy.position_size > 0 ? swingLow * percentMulti : swingHigh * percentMulti
+
+// Check for trailing stop update
+if strategy.position_size != 0 and barstate.isconfirmed
+    // Trail long stop ONLY IF temp trailPrice is not set or is a higher price
+    if (next_trailPrice > trailPrice or na(trailPrice)) and strategy.position_size > 0
+        trailPrice := next_trailPrice
+        // Trigger alert
+        alert(message="Trailing Stop updated for " + syminfo.tickerid + ": " + str.tostring(trailPrice, "#.#####"), freq=alert.freq_once_per_bar_close)
+    // Trail short stop ONLY IF temp trailPrice is not set or is a lower price
+    if (next_trailPrice < trailPrice or na(trailPrice)) and strategy.position_size < 0
+        trailPrice := next_trailPrice
+        // Trigger alert
+        alert(message="Trailing Stop updated for " + syminfo.tickerid + ": " + str.tostring(trailPrice, "#.#####"), freq=alert.freq_once_per_bar_close)
+
+// Draw data to chart
+plot(strategy.position_size != 0 ? trailPrice : na, color=color.red, title="Trailing Stop")
+
+// Exit trade if stop is hit
+strategy.exit(id="Trail Exit", from_entry="Trade", limit=na, stop=trailPrice)
+
+//if (strategy.position_size > 0 and close < trailPrice) or (strategy.position_size < 0 and close > trailPrice)
+//    strategy.close("Trade")
