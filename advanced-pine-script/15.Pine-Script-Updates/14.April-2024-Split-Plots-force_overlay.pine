@@ -1,0 +1,80 @@
+// This  demonstrates how to use the new force_overlay parameter added in April, which allows us to force certain plot functions to draw directly over the chart even if they're called from a separate window (like an oscillator for example).
+
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © ZenAndTheArtOfTrading / www.PineScriptMastery.com
+// @version=5
+indicator(title="RSI Swing Signal", shorttitle="RSI+", overlay=false)
+
+// Stops & target settings
+stopLossInput   = input.float(title="Stop Loss Size (x ATR)", defval=1.0, group="Trade Settings")
+riskToRewardBE  = input.float(title="Reward To Risk Ratio (B/E)", defval=0.8, group="Trade Settings")
+riskToReward    = input.float(title="Reward:Risk Ratio", defval=1.0, group="Trade Settings")
+showBE          = input.bool(title="Show B/E Point", defval=false, group="Trade Settings")
+
+// Indicator settings
+lookback        = input(title="Lookback:", defval=7, group="Indicator Settings")
+rsiOB           = input(title="RSI Overbought Level:", defval=80, group="Indicator Settings")
+rsiOS           = input(title="RSI Oversold Level:", defval=20, group="Indicator Settings")
+rsiLen          = input(title="RSI Length:", defval=7, group="Indicator Settings")
+rsiSrc          = input(title="RSI Source:", defval=close, group="Indicator Settings")
+drawRT          = input.bool(title="Draw Signals On Real-Time Bars", defval=true, group="Indicator Settings")
+
+// Get RSI value
+rsi = ta.rsi(rsiSrc, rsiLen)
+rsisell = rsi > rsiOB
+rsibuy = rsi < rsiOS
+
+// Calculate non-EAP stop loss size
+currentATR = ta.atr(14)
+stopSize = currentATR * stopLossInput
+
+// Determine buy/sell signals
+buysignal1 = (rsibuy or rsibuy[1]) and close[1] < open[1] and close > open[1] and low > low[1] and low[1] < low[2] and low[1] == ta.lowest(low, lookback) and open <= close[1]
+buysignal2 = (rsibuy or rsibuy[1]) and close[1] < open[1] and close > open[1] and low < low[1] and low == ta.lowest(low, lookback) and open <= close[1]
+sellsignal2 = (rsisell or rsisell[1]) and close[1] > open[1] and close < open[1] and high > high[1] and high == ta.highest(high, lookback) and open >= close[1]
+sellsignal1 = (rsisell or rsisell[1]) and close[1] > open[1] and close < open[1] and high < high[1] and high[1] > high[2] and high[1] == ta.highest(high, lookback) and open >= close[1]
+
+// Calculate stop loss distance in pips
+longEntrySize = close - ta.lowest(low, 3) + stopSize
+shortEntrySize = ta.highest(high, 3) - close + stopSize
+
+// Prepare stop and target values
+var tradeStopPrice = 0.0
+var tradeTargetPrice = 0.0
+var tradeBreakEvenPrice = 0.0
+validLong = buysignal1 or buysignal2
+validShort = sellsignal1 or sellsignal2
+
+// Store long position info
+if validLong
+    tradeStopPrice := close - longEntrySize
+    tradeTargetPrice := close + longEntrySize * riskToReward
+    tradeBreakEvenPrice := close + longEntrySize * riskToRewardBE
+// Store short position info
+if validShort
+    tradeStopPrice := close + shortEntrySize
+    tradeTargetPrice := close - shortEntrySize * riskToReward
+    tradeBreakEvenPrice := close - shortEntrySize * riskToRewardBE
+
+//! PAINT OSCILLATOR
+bgcolor(buysignal1 ? color.lime : sellsignal1 ? color.red : na, title="123 Fractal")
+bgcolor(buysignal2 ? color.lime : sellsignal2 ? color.red : na, title="Swing Fractal")
+plot(rsi, title="RSI", color=rsisell ? color.red : rsibuy ? color.lime : #4985e7, linewidth=2)
+plot(rsiOB, title="RSI Overbought", color=color.new(color.red, 0))
+plot(rsiOS, title="RSI Oversold", color=color.new(color.green, 0))
+
+//! PAINT OVERLAY
+// Plot candlestick pattern signals  
+plotshape(validLong and (barstate.ishistory or drawRT), title="Bullish Engulfing", location=location.belowbar, color=color.green, style=shape.triangleup, text="", force_overlay=true)
+plotshape(validShort and (barstate.ishistory or drawRT), title="Bearish Engulfing", location=location.abovebar, color=color.red, style=shape.triangledown, text="", force_overlay=true)
+
+// Draw stops & targets
+plot(validLong or validLong[1] ? tradeStopPrice : na, title="Long Stop Price", color=color.red, style=plot.style_linebr, force_overlay=true)
+plot(validShort or validShort[1] ? tradeStopPrice : na, title="Short Stop Price", color=color.red, style=plot.style_linebr, force_overlay=true)
+plot(validLong or validLong[1] ? tradeTargetPrice : na, title="Long Target Price", color=color.green, style=plot.style_linebr, force_overlay=true)
+plot(validShort or validShort[1] ? tradeTargetPrice : na, title="Short Target Price", color=color.green, style=plot.style_linebr, force_overlay=true)
+plot((validLong or validLong[1]) and showBE ? tradeBreakEvenPrice : na, title="Long Break-Even Price", color=color.blue, style=plot.style_linebr, force_overlay=true)
+plot((validShort or validShort[1]) and showBE ? tradeBreakEvenPrice : na, title="Short Break-Even Price", color=color.blue, style=plot.style_linebr, force_overlay=true)
+
+// Send out an alert if this candle meets our conditions
+alertcondition(sellsignal1 or sellsignal2 or buysignal1 or buysignal2, title="RSI SIGNAL", message="RSI Exhaustion signal for {{ticker}}")
