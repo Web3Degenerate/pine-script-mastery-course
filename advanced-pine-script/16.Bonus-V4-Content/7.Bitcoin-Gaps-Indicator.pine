@@ -1,0 +1,51 @@
+//demonstrates how to detect gaps on a separate market data feed and then plot those gaps over a different price chart - specifically for Bitcoin.
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+ 
+//@version=4
+study("PSMC - Bitcoin Gaps", precision=3, overlay=true)
+ 
+// Get user input
+marketToReference = input(title="Reference Market", type=input.string, defval="BTC1!")
+minimumGap = input(title="Minimum Gap %", type=input.float, defval=5.0, minval=0.01)
+overrideNewGaps = input(title="Override On New Gaps", type=input.bool, defval=false)
+ 
+// Get BTC price data
+btcOpen = security(marketToReference, "D", open[barstate.isrealtime ? 1 : 0])
+btcHigh = security(marketToReference, "D", high[barstate.isrealtime ? 1 : 0])
+btcLow = security(marketToReference, "D", low[barstate.isrealtime ? 1 : 0])
+btcClose = security(marketToReference, "D", close[barstate.isrealtime ? 1 : 0])
+ 
+// Calculate gap %
+gapPercent = ((btcOpen - btcClose[1]) / btcOpen) * 100
+ 
+// Declare gap variables
+var lastBullishGapLevel = btcHigh
+var lastBearishGapLevel = btcLow
+gapAlert = false
+ 
+// Store bullish gap information
+if gapPercent >= minimumGap and (na(lastBullishGapLevel) or overrideNewGaps)
+    lastBullishGapLevel := btcHigh[1]
+    gapAlert := true
+ 
+// Store bearish gap information
+if gapPercent <= -minimumGap and (na(lastBearishGapLevel) or overrideNewGaps)
+    lastBearishGapLevel := btcLow[1]
+    gapAlert := true
+ 
+// If bullish gap level is filled, reset our gap level
+if btcLow <= lastBullishGapLevel
+    lastBullishGapLevel := na
+ 
+// If bearish gap level is filled, reset our gap level
+if btcHigh >= lastBearishGapLevel
+    lastBearishGapLevel := na
+ 
+// Plot last gap
+plot(gapPercent, color=color.orange, transp=100)
+plot(lastBullishGapLevel, color=color.green, style=plot.style_linebr, linewidth=2, title="Last Bullish Gap")
+plot(lastBearishGapLevel, color=color.red, style=plot.style_linebr, linewidth=2, title="Last Bearish Gap")
+ 
+// Trigger alert whenever a large gap is detected
+alertcondition(gapAlert, title="BTC Gap Detected!", message="Gap detected for BTC: {{plot_0}}")
