@@ -1,0 +1,11 @@
+// Updated:
+
+getPipSize(multiplier)
+
+//   Calculates the pip size of the current market
+
+//   Parameters:
+
+//     multiplier (int) - The mintick point multiplier (1 by default, 10 for FX/Crypto/CFD if default 'multiplier' of 1 is used - only override if your market requires it)
+
+//   Returns: The pip size for the current market

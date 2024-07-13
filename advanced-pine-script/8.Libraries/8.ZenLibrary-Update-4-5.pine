@@ -1,0 +1,17 @@
+// Release Notes:
+
+// v6
+
+// Added:
+
+getPipSize()
+
+//   Calculates the pip size of the current market
+
+//   Returns: The pip size for the current market
+
+// Changed:
+
+// Improved toWhole() and toPips() function formula to work better across FX/Crypto/Stocks
+
+// Fixed bug with barsCrossedMA (it based count on crosses of current MA value instead of MA value for each previous bar)

@@ -1,0 +1,57 @@
+// Explains how to use Time Sessions to filter your alert conditions.
+
+//Pine Script Session and Time Information: https://www.tradingview.com/pine-script-docs/v4/essential/sessions-and-time-functions/
+
+// Part 1: Disable Alerts Within Session
+// Part 2: Enable Alerts Within Session
+
+// ************ PART 1: DISABLE ALERTS WITHIN SESSION *************************************************// 
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+//@version=4
+study("PSMC - Alerts Within Session", overlay=true)
+
+// Get user input
+session = input(title="Time session", type=input.session, defval="0930-1030")
+
+// Create function for detecting if current bar falls within specified time period
+InSession(sess) => na(time(timeframe.period, sess)) == false
+
+// Check if the current bar falls within our session
+isInSession = InSession(session)
+
+// Change bar color if bar falls within session
+barcolor(isInSession ? color.black : na)
+
+// Trigger alert ONLY IF bar is within session
+alertTrigger = close >= open
+alertcondition(alertTrigger and isInSession, title="Alert title", message="Alert message")
+
+
+
+// ************ PART 2: ENABLE ALERTS WITHIN SESSION *************************************************// 
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+//@version=4
+study("PSMC - Alerts & Afterhours", overlay=true)
+
+// Get user input
+preMarket = input(title="Pre-market", type=input.session, defval="0400-0930")
+afterMarket = input(title="After-market", type=input.session, defval="1600-2000")
+
+// Create function for detecting if current bar falls within specified time period
+InSession(sess) => na(time(timeframe.period, sess)) == false
+
+// Check if the current bar falls within pre-market or after-market hours
+isAfterClose = InSession(afterMarket)
+isPreOpen = InSession(preMarket)
+isAfterHours = isAfterClose or isPreOpen
+
+// Change bar color if bar falls within after hours time
+barcolor(isAfterHours ? color.black : na)
+
+// Trigger alert ONLY IF bar is outside of after hours time
+alertTrigger = close >= open
+alertcondition(alertTrigger and not isAfterHours, title="Alert title", message="Alert message")
