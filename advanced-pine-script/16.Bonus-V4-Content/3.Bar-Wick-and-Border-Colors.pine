@@ -1,0 +1,9 @@
+// how to use the plotcandle function to use custom candle border & wick colors: https://www.tradingview.com/pine-script-reference/v5/#fun_plotcandle
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+//@version=4
+study("PSMC - Bar Wick & Border Color", overlay=true)
+bullCandle = close > open
+plotcandle(bullCandle ? open : na, bullCandle ? high : na, bullCandle ? low : na, bullCandle ? close : na, color=color.green, wickcolor=color.blue, bordercolor=color.lime)
+plotcandle(bullCandle ? na : open, bullCandle ? na : high, bullCandle ? na : low, bullCandle ? na : close, color=color.maroon, wickcolor=color.orange, bordercolor=color.red)

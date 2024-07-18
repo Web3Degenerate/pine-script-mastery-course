@@ -1,0 +1,19 @@
+// Demonstrates how to use the tostring() function and label object to draw variable values to the chart as text.
+
+// tostring() function: https://www.tradingview.com/pine-script-reference/v5/#fun_tostring
+
+// label object: https://www.tradingview.com/pine-script-reference/v5/#fun_label
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+//@version=4
+study("PSMC - Drawing Variable Values", overlay=true)
+
+// Calculate difference between 50 EMA and 100 EMA
+variableValue = (ema(close, 100) - ema(close, 50)) / syminfo.mintick
+
+// Create a label
+labelText = tostring(variableValue)
+ourLabel = label.new(x=bar_index, y=na, text=labelText, yloc=yloc.belowbar, color=color.green, textcolor=color.white, style=label.style_label_up, size=size.normal)
+
+label.delete(ourLabel[1])
