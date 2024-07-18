@@ -1,0 +1,26 @@
+// demonstrates how to modify the Stochastic indicator to calculate its data based on the RSI instead of price action.
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+
+//@version=4
+study("PSMC - Stochastic & RSI")
+
+// Get user input
+kInput = input(title="K Length", type=input.integer, defval=14)
+dInput = input(title="D Length", type=input.integer, defval=3)
+rsiLength = input(title="RSI Length", type=input.integer, defval=14)
+obLevel = input(title="Overbought Threshold", type=input.float, defval=80)
+osLevel = input(title="Oversold Threshold", type=input.float, defval=20)
+
+// Calculate our stochastic
+rsi = rsi(close, rsiLength)
+k = 100 * ((rsi - lowest(rsi, kInput)) / (highest(rsi, kInput) - lowest(rsi, kInput)))
+d = sma(k, dInput)
+
+// Draw data to chart
+plot(obLevel, color=color.red, linewidth=2, title="Overbought")
+plot(osLevel, color=color.green, linewidth=2, title="Oversold")
+plot(rsi, color=rsi > obLevel ? color.red : rsi < osLevel ? color.green : color.black, linewidth=2)
+plot(k, color=color.purple, title="K")
+plot(d, color=color.orange, title="D")
