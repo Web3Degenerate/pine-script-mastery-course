@@ -1,0 +1,36 @@
+// This demonstrates how to use the QUANDL service to analyze the Federal Reserve Balance Sheet in your scripts.
+// https://data.nasdaq.com/data/FRED/WALCL-all-federal-reserve-banks-total-assets
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+//@version=4
+study("PSMC - QUANDL Fed Balance Sheet", precision=3)
+
+// Get current Federal Reserve Balance Sheet
+currentSheet = quandl("FRED/WALCL", barmerge.gaps_off, 0)
+var balanceSheet = currentSheet
+var balanceChange = 0.0
+var assetPrice = close
+var assetChange = 0.0
+drawChange = false
+
+// If the current balance sheet has changed since last time, calculate the percentage difference
+if currentSheet != balanceSheet
+balanceSheet := currentSheet
+balanceChange := (1.0 - (balanceSheet[1] / balanceSheet)) * 100
+assetChange := (1.0 - (assetPrice[1] / close)) * 100
+assetPrice := close
+drawChange := true
+
+// Plot this data to the chart
+plot(balanceSheet, color=color.blue, title="Balance Sheet")
+plot(balanceChange, color=color.purple, transp=100, title="Change %")
+plot(assetChange, color=color.navy, title="Asset Price Change %")
+
+// Plot shapes to show positive & negative balance sheet changes
+plotshape(drawChange ? balanceChange > 0 ? 1 : na : na, style=shape.arrowup, color=color.green, location=location.top, title="Positive Balance Change")
+plotshape(drawChange ? balanceChange < 0 ? 1 : na : na, style=shape.arrowdown, color=color.red, location=location.top, title="Negative Balance Change")
+
+// Plot shapes to show positive & negative asset price changes
+plotshape(drawChange ? assetChange > 0 ? 1 : na : na, style=shape.arrowup, color=color.green, location=location.bottom, title="Positive Asset Change")
+plotshape(drawChange ? assetChange < 0 ? 1 : na : na, style=shape.arrowdown, color=color.red, location=location.bottom, title="Negative Asset Change")
