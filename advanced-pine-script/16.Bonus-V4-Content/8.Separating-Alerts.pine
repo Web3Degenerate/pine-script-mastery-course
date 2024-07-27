@@ -1,0 +1,58 @@
+//demonstrates how to split multiple alerts using your settings menu. 
+
+// There are two methods - one is to use the alertcondition() function multiple times in your script for each alert. 
+
+// The advantage of this approach is that you can title your alerts in the alert dialog interface, but the drawback is you need to set each alert individually and you need to use the {{plot}} placeholder to pass script data to a 3rd party API.
+
+// The second (better) method is to use the new alert() function which was introduced recently. This function triggers based on an "if" statement, so it can be more customized than the alertcondition() function.
+
+// And the process of separating multiple alert triggers is made a bit simpler by the fact that you can easily add alert checkboxes to your script's settings menu so that you can isolate and enable whichever alerts you need more fluidly.
+
+// The main advantage of this approach is that you can also use this alert() function to easily add dynamic text messages to your alerts without using the {{plot}} placeholder, which is fantastic for third-party API automation purposes!
+
+// Simply use the "tostring()" function in your alert() message to convert any number data to text.
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © ZenAndTheArtOfTrading
+// @version=4
+study(title="PSMC - Splitting Alerts", overlay=true)
+
+// Get user input
+rsiOB_Alert = input(title="RSI OB Alert?", type=input.bool, defval=false)
+rsiOS_Alert = input(title="RSI OS Alert?", type=input.bool, defval=false)
+rsiOB_Bear_Alert = input(title="RSI OB Bear Alert?", type=input.bool, defval=false)
+rsiOS_Bull_Alert = input(title="RSI OS Bull Alert?", type=input.bool, defval=false)
+
+// Get RSI
+rsi = rsi(close, 7)
+
+// Detect signals
+rsiOB = rsi >= 70
+rsiOS = rsi <= 30
+rsiOB_Bear = rsiOB[1] and close <= open
+rsiOS_Bull = rsiOS[1] and close >= open
+
+// Draw signals
+plotshape(rsiOB, style=shape.triangledown, color=color.red, location=location.abovebar, title="RSI OB")
+plotshape(rsiOS, style=shape.triangleup, color=color.green, location=location.belowbar, title="RSI OS")
+plotshape(rsiOB_Bear, style=shape.arrowdown, color=color.purple, location=location.abovebar, title="RSI OB Bull")
+plotshape(rsiOS_Bull, style=shape.arrowup, color=color.purple, location=location.belowbar, title="RSI OS Bear")
+
+// Generate alert triggers
+if rsiOB_Alert and rsiOB
+    alert("RSI Overbought at: " + tostring(rsi), alert.freq_once_per_bar)
+
+if rsiOS_Alert and rsiOS
+    alert("RSI Oversold at: " + tostring(rsi), alert.freq_once_per_bar)
+
+if rsiOB_Bear_Alert and rsiOB_Bear
+    alert("RSI Overbought at: " + tostring(rsi) + " and bearish candle closed at: " + tostring(close), alert.freq_once_per_bar_close)
+    
+if rsiOS_Bull_Alert and rsiOS_Bull
+    alert("RSI Oversold at: " + tostring(rsi) + " and bullish candle closed at: " + tostring(close), alert.freq_once_per_bar_close)
+    
+// Generate alert conditions
+alertcondition(rsiOB_Alert and rsiOB, title="RSI Overbought", message="RSI is overbought!")
+alertcondition(rsiOS_Alert and rsiOS, title="RSI Oversold", message="RSI is overbought!")
+alertcondition(rsiOB_Bear_Alert and rsiOB_Bear, title="RSI Overbought + Bear", message="RSI is overbought and printed a bearish bar!")
+alertcondition(rsiOS_Bull_Alert and rsiOS_Bull, title="RSI Oversold + Bull", message="RSI is oversold and printed a bullish bar!")
