@@ -1,0 +1,66 @@
+// This demonstrates how you can connect your TradingView strategies & indicators to the 3commas API for auto-trading Crypto with your scripts.
+
+// This particular script is just an example - it's not intended to be used in practice, but maybe it can inspire some ideas for your own trading given its simplicity and the fact that it is decently profitable.
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © ZenAndTheArtOfTrading / www.pinescriptmastery.com
+// Last Updated: 17th February 2021
+// @version=4
+strategy("RSI Mean Reversion Strategy 2021", 
+ shorttitle="pinescriptmastery.com", 
+ overlay=true, 
+ initial_capital=10000, 
+ default_qty_value=10000)
+
+// Get user input
+rsiLen = input(title="RSI Length", type=input.integer, defval=14)
+rsiOS = input(title="RSI OS", type=input.float, defval=30.0)
+rsiSell = input(title="RSI Sell", type=input.float, defval=50.0)
+slType = input(title="Stop Loss ATR / %", type=input.bool, defval=true)
+slMulti = input(title="SL Multiplier", type=input.float, defval=1.0, step=0.1)
+minimumProfitPercent = input(title="Minimum Profit %", type=input.float, defval=0.00)
+
+// Get ATR & RSI Value
+atr = atr(14)
+rsi = rsi(close, rsiLen)
+
+// Determine percentage of open profit
+var entry = 0.0
+distanceProfit = high - entry
+distanceProfitPercent = distanceProfit / entry
+
+// Determine if we have a long entry signal OR a sell position signal
+profitSignal = minimumProfitPercent == 0.0 or distanceProfitPercent >= minimumProfitPercent
+longSignal = rsi <= rsiOS and barstate.isconfirmed and strategy.position_size == 0 and not na(atr)
+exitSignal = profitSignal and barstate.isconfirmed and strategy.position_size != 0 and rsi >= rsiSell
+
+// Get Stop Loss (in pips AND percentage distance)
+longStop = lowest(low, 4) - (atr * slMulti)
+longStopPercent = close - (close * slMulti)
+    
+// Save long stop & target prices (used for drawing data to the chart & determining profit)
+var longStopSaved = 0.0
+var longTargetSaved = 0.0
+enterLong = false
+if longSignal
+    longStopSaved := slType ? longStop : longStopPercent
+    enterLong := true
+    entry := close
+
+// Enter trades when conditions are met
+strategy.entry(id="Long", 
+ long=strategy.long, 
+ when=enterLong, 
+ comment="{\n\"message_type\": \"bot\",\n\"bot_id\": 2695468,\n\"email_token\": \"de096c0b-e774-487f-a54a-677cac799710\",\n\"delay_seconds\": 0\n}")
+
+// Place exit orders (only executed after trades are active)
+strategy.exit(id="Long Exit", 
+ from_entry="Long", 
+ limit=exitSignal ? close : na, 
+ stop=longStopSaved, 
+ when=strategy.position_size > 0, 
+ comment="{\n\"message_type\": \"bot\",\n\"bot_id\": 2695468,\n\"email_token\": \"de096c0b-e774-487f-a54a-677cac799710\",\n\"delay_seconds\": 0,\n\"action\": \"close_at_market_price\"\n}")
+
+// Draw stops & entry price until position is exited
+plot(strategy.position_size > 0 ? longStopSaved : na, color=color.red, style=plot.style_linebr)
+plot(strategy.position_size > 0 ? entry : na, color=color.blue, style=plot.style_linebr)
