@@ -1,0 +1,34 @@
+//This demonstrates how to use tables to display data onto your charts.
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © ZenAndTheArtOfTrading / www.PineScriptMastery.com
+// @version=4
+study("Tables", overlay=true)
+
+// Custom function to truncate (cut) excess decimal places
+truncate(_number, _decimalPlaces) =>
+    _factor = pow(10, _decimalPlaces)
+    int(_number * _factor) / _factor
+
+// Get display data
+ema = ema(close,50)
+rsi = rsi(close,14)
+mktChange = (change(close) / close[1]) * 100
+
+// Create table
+var table myTable = table.new(position.top_right, 5, 2, border_width=1)
+
+// Update table
+if barstate.islast
+    txt1 = "Closing Price\n" + tostring(close)
+    txt2 = "Opening Price\n" + tostring(open)
+    txt3 = "Pip Gain/Loss\n" + tostring(close - open)
+    txt4 = "50-EMA Value\n" + tostring(truncate(ema,2))
+    txt5 = "RSI Value\n" + tostring(truncate(rsi,2))
+    txt6 = "Percent Change\n" + tostring(truncate(mktChange,2)) + "%"
+    table.cell(myTable, 0, 0, text=txt1, bgcolor=color.black, text_color=color.white)
+    table.cell(myTable, 0, 1, text=txt2, bgcolor=color.black, text_color=color.white)
+    table.cell(myTable, 1, 0, text=txt3, bgcolor=color.black, text_color=color.white)
+    table.cell(myTable, 1, 1, text=txt4, bgcolor=color.black, text_color=color.white)
+    table.cell(myTable, 2, 0, text=txt5, bgcolor=color.black, text_color=color.white)
+    table.cell(myTable, 2, 1, text=txt6, bgcolor=(mktChange > 0 ? color.green : color.red), text_color=color.white)
