@@ -4,6 +4,7 @@
 // © ZenAndTheArtOfTrading / PineScriptMastery
 // Last Updated: 5th October, 2021
 // @version=4
+// 
 strategy("Hammers & Stars Strategy [v1.1]", shorttitle="HSS[v1.1]", overlay=true)
 
 //// Strategy Settings
