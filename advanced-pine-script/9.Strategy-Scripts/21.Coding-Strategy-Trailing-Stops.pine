@@ -1,6 +1,6 @@
 //This demonstrates various methods we can use to code trailing stop losses in Pine Script to lock in profits in strategy scripts - including ATR and Percentage-based variants with several parameters.
 
-// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+/// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 
 // @version=5
 strategy("www.PineScriptMastery.com", overlay=true)
