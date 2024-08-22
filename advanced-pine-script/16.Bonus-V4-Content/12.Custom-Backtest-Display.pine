@@ -3,7 +3,7 @@
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © ZenAndTheArtOfTrading / PineScriptMastery
 // Last Updated: 5th October, 2021
-// @version=4
+/// @version=4
 // 
 strategy("Hammers & Stars Strategy [v1.1]", shorttitle="HSS[v1.1]", overlay=true)
 
