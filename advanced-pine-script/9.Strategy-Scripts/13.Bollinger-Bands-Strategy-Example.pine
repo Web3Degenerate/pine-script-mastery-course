@@ -1,6 +1,6 @@
 //Demonstrates how to convert the 5.Indicators/15.Bollinger-Bands-Breakouts.pin "Bollinger Band Breakout Indicator" into a strategy script, and explains some of the limitations of the TradingView Strategy Tester when it comes to robust portfolio testing.
 
-//The Strategy Tester is a great tool and can be used to create backtesting scripts extremely quickly and efficiently especially for limited market strategies such as forex and commodities and small stock portfolios, but the price we pay for that convenience is the lack of powerful features that the Strategy Tester has to offer.
+///The Strategy Tester is a great tool and can be used to create backtesting scripts extremely quickly and efficiently especially for limited market strategies such as forex and commodities and small stock portfolios, but the price we pay for that convenience is the lack of powerful features that the Strategy Tester has to offer.
 
 //Hopefully in the future the TradingView developers will expand on the tester and make multiple market testing possible. But for now just be aware that if you're developing a strategy to be traded across dozens or hundreds of markets (such as a universe of stocks in the S&P500 for example), testing it properly can be difficult to achieve with Pine.
 
