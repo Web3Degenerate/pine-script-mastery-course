@@ -2,7 +2,7 @@
 
 ///The Strategy Tester is a great tool and can be used to create backtesting scripts extremely quickly and efficiently especially for limited market strategies such as forex and commodities and small stock portfolios, but the price we pay for that convenience is the lack of powerful features that the Strategy Tester has to offer.
 
-//Hopefully in the future the TradingView developers will expand on the tester and make multiple market testing possible. But for now just be aware that if you're developing a strategy to be traded across dozens or hundreds of markets (such as a universe of stocks in the S&P500 for example), testing it properly can be difficult to achieve with Pine.
+///Hopefully in the future the TradingView developers will expand on the tester and make multiple market testing possible. But for now just be aware that if you're developing a strategy to be traded across dozens or hundreds of markets (such as a universe of stocks in the S&P500 for example), testing it properly can be difficult to achieve with Pine.
 
 //For advanced system testing and trading, other languages such as AFL (https://www.amibroker.com/guide/AFL.html) or Python might be more suitable if you want to build complex strategies and/or perform advanced backtesting such as automatic optimizations and Monte Carlo simulations etc. Pine Script is much better suited for creating trading tools to assist in your trading, rather than advanced fully-automated trading systems that trade hundreds or thousands of markets.
 
