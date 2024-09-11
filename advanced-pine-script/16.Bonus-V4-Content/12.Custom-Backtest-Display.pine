@@ -7,7 +7,7 @@
 // 
 strategy("Hammers & Stars Strategy [v1.1]", shorttitle="HSS[v1.1]", overlay=true)
 
-////// Strategy Settings
+/////// Strategy Settings
 var g_strategy      = "Strategy Settings"
 atrMinFilterSize    = input(title=">= ATR Filter", type=input.float, defval=0.0, minval=0.0, group=g_strategy, tooltip="Minimum size of entry candle compared to ATR")
 atrMaxFilterSize    = input(title="<= ATR Filter", type=input.float, defval=3.0, minval=0.0, group=g_strategy, tooltip="Maximum size of entry candle compared to ATR")
