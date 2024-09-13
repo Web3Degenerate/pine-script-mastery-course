@@ -2,7 +2,7 @@
 
 getPipSize(multiplier)
 
-//   Calculates the pip size of the current market
+///   Calculates the pip size of the current market
 
 //   Parameters:
 
